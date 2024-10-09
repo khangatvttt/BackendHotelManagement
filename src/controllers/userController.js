@@ -1,30 +1,29 @@
 import { User, Customer, Staff } from '../models/user.schema.js';
 
 // Create a new user (Customer or Staff)
-export const createUser = async (req, res) => {
+export const createUser = async (req, res, next) => {
   try {
     const { role, ...userData } = req.body;
     const newUser = role === 'Customer' ? new Customer(userData) : new Staff(userData);
-    console.log("a")
     await newUser.save();
     res.status(201).json(newUser);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // Read all users
-export const getAllUsers = async (req, res) => {
+export const getAllUsers = async (req, res, next) => {
   try {
     const users = await User.find();
     res.status(200).json(users);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // Update user by ID
-export const updateUser = async (req, res) => {
+export const updateUser = async (req, res, next) => {
     const { id } = req.params; // Extract user ID from request parameters
     const updates = req.body;  // Extract updates from request body
   
@@ -36,29 +35,30 @@ export const updateUser = async (req, res) => {
       });
   
       if (!updatedUser) {
-        return res.status(404).json({ message: 'User not found' });
+        throw new NotFoundError(`User with id ${id} doesn't exist`);
       }
   
       res.status(200).json(updatedUser);
     } catch (error) {
-      res.status(500).json({ message: error.message });
+      next(error);
     }
   };
 
 // Delete user by ID
-export const deleteUser = async (req, res) => {
+export const deleteUser = async (req, res, next) => {
     const { id } = req.params; // Extract user ID from request parameters
   
     try {
       const deletedUser = await User.findByIdAndDelete(id);
   
       if (!deletedUser) {
-        return res.status(404).json({ message: 'User not found' });
+        throw new NotFoundError(`User with id ${typeRoom} doesn't exist`);
+
       }
   
-      res.status(204).send(); // No content to send back after deletion
+      res.status(204).send();
     } catch (error) {
-      res.status(500).json({ message: error.message });
+      next(error);
     }
   };
 

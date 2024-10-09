@@ -16,10 +16,6 @@ const userSchema = new Schema({
         type: String,
         required: true
     },
-    userInfoID: {
-        type: String,
-        required: true
-    },
     fullName: {
         type: String,
         required: true
