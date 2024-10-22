@@ -5,8 +5,7 @@ import {
     getMaintainScheduleById,
     updateMaintainSchedule,
     deleteMaintainSchedule
-} from '../controllers/maintainScheduleController.js'; // Assuming your controller file is named maintainScheduleController.js
-
+} from '../controllers/maintainScheduleController.js'; 
 const router = express.Router();
 
 // Create a new MaintainSchedule

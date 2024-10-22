@@ -1,6 +1,6 @@
 import Booking from '../models/booking.schema.js';
 import Room from '../models/room.schema.js';
-import User from '../models/user.schema.js'; // Ensure this exists
+import User from '../models/user.schema.js';
 import NotFoundError from '../errors/notFoundError.js';
 
 // Create a new Booking

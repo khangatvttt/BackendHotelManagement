@@ -6,18 +6,48 @@ import roomRoutes from './src/routes/roomRoutes.js'
 import bookingRoutes from './src/routes/bookingRoutes.js'
 import promotionRoutes from './src/routes/promotionRoutes.js'
 import maintainScheduleRoutes from './src/routes/maintainScheduleRoutes.js'
+import authRoutes from './src/routes/authRoutes.js'
 import { errorHandler } from './src/errors/errorHandler.js';
 import dotenv from 'dotenv';
+import cors from 'cors'
+import cookieParser from 'cookie-parser';
+import jwtMiddleware from './src/middlewares/jwtMiddleware.js'
+
 
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
-
-// Middleware
-app.use(express.json()); // For parsing application/json
+const allowedOrigins = ['http://localhost:3000', 'https://your-frontend-domain.com'];
 
 // Database connection
 connectDB();
+
+// Middleware
+app.use(express.json()); // For parsing application/json
+app.use(cookieParser()); // For parsing cookie
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true, // Allow cookies to be sent in requests
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE', // Allowed methods
+  allowedHeaders: 'Content-Type,Authorization', // Headers that are allowed
+}));
+
+// Auth endpoint doesn't need jwt authentication
+app.use('/api/auth', authRoutes)
+
+// JWT authentication
+app.use(jwtMiddleware)
+
 
 // Routes
 app.use('/api/users', userRoutes);

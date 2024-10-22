@@ -1,9 +1,23 @@
 import { User, Customer, Staff } from '../models/user.schema.js';
+import bcrypt from 'bcrypt';
+import BadRequestError from '../errors/badRequestError.js'
 
 // Create a new user (Customer or Staff)
 export const createUser = async (req, res, next) => {
   try {
-    const { role, ...userData } = req.body;
+    const { role, password, ...userData } = req.body;
+
+    // Check if password is strong enough (at least 6 character, 1 Upcase letter, 1 Number and 1 Lowercase letter)
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{6,}$/;
+    if (!passwordRegex.test(password)){
+      throw new BadRequestError("Password is not strong is enough. Must have at least at least 6 characters and contains at least 1 Upcase letter, 1 Number and 1 Lowercase letter");
+    }
+
+    // Hash password
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    userData.password = hashedPassword;
+
     const newUser = role === 'Customer' ? new Customer(userData) : new Staff(userData);
     await newUser.save();
     res.status(201).json(newUser);

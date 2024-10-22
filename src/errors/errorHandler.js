@@ -3,11 +3,6 @@ export const errorHandler = (err, req, res, next) => {
     let statusCode = err.statusCode || 500;
     let message = err.message;
 
-    // Handle Not Found error
-    if (err.name === 'Not Found') {
-        statusCode = 404;
-        message = err.message;
-    }
 
     // Handle Mongoose validation errors
     if (err.name === 'ValidationError') {
@@ -28,9 +23,23 @@ export const errorHandler = (err, req, res, next) => {
         message = `Duplicate value for field '${field}'`;
     }
 
+    if (err.name == 'TypeError') {
+        statusCode = 400;
+        message = 'Invalid request body.';
+    }
+
+    if (err.name === 'TokenExpiredError') {
+        statusCode = 400;
+        message = 'Token expired'
+    }
+
     // Handle other types of errors (if any)
     res.status(statusCode).json({
-        success: false,
-        message: message,
+        error: {
+            status: statusCode,
+            message: message,
+            timestamp: new Date().toISOString(),
+            path: req.path,
+        }
     });
 };
