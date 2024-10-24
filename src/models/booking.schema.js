@@ -40,7 +40,7 @@ const bookingSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    CurrentStatus: { //Cancel or still reservation
+    CurrentStatus: { //Cancel (true) or still reservation (false)
         type: Boolean,
         required: true
     }
