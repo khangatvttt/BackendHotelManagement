@@ -2,10 +2,8 @@ import mongoose from 'mongoose';
 
 const { Schema } = mongoose;
 
-// Base user schema options
 const options = { discriminatorKey: 'role', collection: 'users' };
 
-// Base User schema
 const userSchema = new Schema({
     email: {
         type: String,

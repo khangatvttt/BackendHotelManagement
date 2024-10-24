@@ -28,7 +28,7 @@ const bookingSchema = new mongoose.Schema({
         min: 0,
         max: 5
     },
-    personNumber: { //How many people booked this time
+    personNumber: {
         type: Number,
         required: true
     },
@@ -40,7 +40,7 @@ const bookingSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    CurrentStatus: { //Cancel or still reservation
+    CurrentStatus: {
         type: Boolean,
         required: true
     }
