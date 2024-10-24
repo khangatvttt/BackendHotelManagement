@@ -16,16 +16,13 @@ const userSchema = new Schema({
         type: String,
         required: true
     },
-    userInfoID: {
-        type: String,
-        required: true
-    },
     fullName: {
         type: String,
         required: true
     },
     gender: {
-        type: String
+        type: String,
+        required: true
     },
     birthDate: {
         type: Date
@@ -34,23 +31,37 @@ const userSchema = new Schema({
         type: String
     },
     status: {
-        type: Number,
-        enum: [0, 1],
-        default: 1
+        type: Boolean,
+        default: true
+    },
+    isVerified: {
+        type: Boolean,
+        default: false
+    },
+    resetPasswordToken: {
+        token: {
+            type: String,
+        },
+        expires: {
+            type: Date,
+        },
+  },
+    refreshToken: {
+        type: String
     }
 }, options);
 
 // Create the base User model
-const User = mongoose.model('User', userSchema);
+export const User = mongoose.model('User', userSchema);
 
 // Discriminator for Customer
-const Customer = User.discriminator('Customer', new Schema({
+export const Customer = User.discriminator('Customer', new Schema({
     point: { type: Number, default: 0 }
 }));
 
 // Discriminator for Staff
-const Staff = User.discriminator('Staff', new Schema({
+export const Staff = User.discriminator('Staff', new Schema({
     salary: { type: Number, default: null }
 }));
 
-export { User, Customer, Staff };
+export default { User, Customer, Staff };
