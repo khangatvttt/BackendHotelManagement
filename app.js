@@ -1,4 +1,5 @@
 import express from 'express';
+import swaggerDocs from './swagger.js'
 import connectDB from './src/config/databaseConfig.js';
 import userRoutes from './src/routes/userRoutes.js';
 import typeRoomRoutes from './src/routes/typeRoomRoutes.js'
@@ -17,7 +18,7 @@ import jwtMiddleware from './src/middlewares/jwtMiddleware.js'
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
-const allowedOrigins = ['http://localhost:3000', 'https://your-frontend-domain.com'];
+const allowedOrigins = ['http://localhost:3000', 'http://localhost:3001'];
 
 // Database connection
 connectDB();
@@ -42,8 +43,11 @@ app.use(cors({
   allowedHeaders: 'Content-Type,Authorization', // Headers that are allowed
 }));
 
-// Auth endpoint doesn't need jwt authentication
+// Endpoint doesn't need jwt authentication
 app.use('/api/auth', authRoutes)
+//API documents
+swaggerDocs(app, PORT)
+
 
 // JWT authentication
 app.use(jwtMiddleware)

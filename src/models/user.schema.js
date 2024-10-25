@@ -14,7 +14,8 @@ const userSchema = new Schema({
     },
     password: {
         type: String,
-        required: true
+        required: true,
+        select: false
     },
     fullName: {
         type: String,
@@ -22,10 +23,13 @@ const userSchema = new Schema({
     },
     gender: {
         type: String,
+        enum: ['Male', 'Female'],
         required: true
     },
     birthDate: {
-        type: Date
+        type: Date,
+        required: true
+
     },
     phoneNumber: {
         type: String
@@ -39,15 +43,15 @@ const userSchema = new Schema({
         default: false
     },
     resetPasswordToken: {
-        token: {
-            type: String,
-        },
-        expires: {
-            type: Date,
-        },
-  },
+        type: new Schema({
+            token: String,
+            expires: Date
+        }, { _id: false }),
+        select: false
+    },
     refreshToken: {
-        type: String
+        type: String,
+        select: false
     }
 }, options);
 
@@ -64,4 +68,8 @@ export const Staff = User.discriminator('Staff', new Schema({
     salary: { type: Number, default: null }
 }));
 
-export default { User, Customer, Staff };
+export const Admin = User.discriminator('Admin', new mongoose.Schema({}, { _id: false }));
+
+
+
+export default { User, Customer, Staff, Admin };

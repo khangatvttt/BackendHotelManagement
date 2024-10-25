@@ -43,7 +43,7 @@ const handleTokenRefresh = async (req, res, next, refreshToken) => {
     const decodedRefreshToken = jwtServices.verifyToken(refreshToken);
 
     // Find user and validate the refresh token stored in DB
-    const user = await User.findById(decodedRefreshToken.user_id);
+    const user = await User.findById(decodedRefreshToken.user_id).select('+refreshToken');;
     if (!user || user.refreshToken !== refreshToken) {
       throw new UnauthorizedError('Invalid refresh token. Please login again.');
     }

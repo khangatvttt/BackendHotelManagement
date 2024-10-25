@@ -20,7 +20,7 @@ export const login = async (req, res, next) => {
       throw new BadRequestError('Invalid request body.');
     }
 
-    const user = await User.findOne({ email: email }).lean();
+    const user = await User.findOne({ email: email }).select('+password').lean();
     // User with this email doesn't exist
     if (!user) {
       throw new UnauthorizedError("Email or password is incorrect");
@@ -60,7 +60,7 @@ export const login = async (req, res, next) => {
     res.cookie('access_token', accessToken, {
       httpOnly: true,
       sameSite: 'Strict',
-      maxAge: 1000 * 60 * 30, // 30m
+      maxAge: 1000 * 60 * 60 * 24 * 7, // 7d
     });
 
     res.cookie('refresh_token', refreshToken, {
@@ -100,7 +100,7 @@ export const signUp = async (req, res, next) => {
     const baseUrl = `${req.protocol}://${req.get('host')}`;
     sendVerifyEmail(userData.email, userData.fullName, baseUrl);
 
-    const newUser = role === 'Customer' ? new Customer(userData) : new Staff(userData);
+    const newUser = new Customer(userData);
 
     await newUser.save();
     res.status(201).send();
@@ -113,12 +113,12 @@ export const verifyEmail = async (req, res, next) => {
   try {
     const token = req.query.token;
     if (!token) {
-      throw new UnauthorizedError('No token provided');
+      throw new BadRequestError('No token provided');
     }
 
     const payload = jwtServices.verifyToken(token);
     if (payload.token_type != 'verify_token') {
-      throw new UnauthorizedError('Invalid token type');
+      throw new BadRequestError('Invalid token type');
     }
 
     const email = payload.email;
@@ -152,6 +152,11 @@ export const requestResetPassword = async (req, res, next) => {
     if (!user) {
       throw new NotFoundError(`User with email ${email} doesn't exist`);
     }
+
+    if (!user.isVerified || !user.status){
+      throw new ForbiddenError('This account is disabled')
+    }
+    
     let token;
     let tokenExists = true
     while (tokenExists) {
@@ -181,7 +186,7 @@ export const requestResetPassword = async (req, res, next) => {
 export const resetPassword = async (req, res, next) => {
   try {
     const { token, newPassword } = req.body
-    const user = await User.findOne({ 'resetPasswordToken.token': token })
+    const user = await User.findOne({ 'resetPasswordToken.token': token }).select('+resetPasswordToken +password');
 
     if (!user) {
       throw new BadRequestError("Invalid reset password token")
