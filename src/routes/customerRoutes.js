@@ -1,32 +1,33 @@
 import express from 'express';
-import { getAllUsers, updateUser, getUser } from '../controllers/userController.js';
+import { getAllCustomers, updateCustomer, getCustomer } from '../controllers/customerController.js';
 import authorizeRoles from '../middlewares/authorizationMiddleware.js';
+import { ROLES } from '../models/roles.js';
 
 const router = express.Router();
 
 /**
  * @swagger
  * tags:
- *   name: Users
- *   description: API for managing users
+ *   name: Customers
+ *   description: API for managing customers
  */
 
 /**
  * @swagger
- * /api/users:
+ * /api/customers:
  *   get:
- *     summary: Get all users
- *     description: This endpoint retrieves a list of all users.
- *     tags: [Users]
+ *     summary: Get all customers
+ *     description: This endpoint retrieves a list of all customers. Only Admin and Staff can access this endpoint
+ *     tags: [Customers]
  *     responses:
  *       200:
- *         description: A list of users
+ *         description: A list of customers
  *         content:
  *           application/json:
  *             schema:
  *               type: array
  *               items:
- *                 $ref: '#/components/schemas/User'
+ *                 $ref: '#/components/schemas/customer'
  *         examples:
  *           application/json:
  *             value: [
@@ -58,46 +59,47 @@ const router = express.Router();
  *               }
  *             ]
  */
+router.get('/', authorizeRoles(ROLES.ADMIN, ROLES.STAFF), getAllCustomers);
 
 /**
  * @swagger
- * /api/users/{id}:
+ * /api/customers/{id}:
  *   get:
- *     summary: Get user by ID
- *     description: This endpoint retrieves information about a specific user.
- *     tags: [Users]
+ *     summary: Get customer by ID
+ *     description: This endpoint retrieves information about a specific customer.  Only Admid, Staff and Customer themself can get their info
+ *     tags: [Customers]
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
- *         description: The ID of the user to retrieve
+ *         description: The ID of the customer to retrieve
  *         schema:
  *           type: string
  *     responses:
  *       200:
- *         description: User information
+ *         description: customer information
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/User'
+ *               $ref: '#/components/schemas/customer'
  *       404:
- *         description: User not found
+ *         description: customer not found
  */
-router.get('/', authorizeRoles('Admin', 'Staff'), getAllUsers);
+router.get('/:id', getCustomer);
 
 
 /**
  * @swagger
- * /api/users/{id}:
+ * /api/customers/{id}:
  *   put:
- *     summary: Update user by ID
- *     description: This endpoint updates information for a specific user.
- *     tags: [Users]
+ *     summary: Update customer by ID
+ *     description: This endpoint updates information for a specific customer. Only provide fields that need to update.
+ *     tags: [Customers]
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
- *         description: The ID of the user to update
+ *         description: The ID of the customer to update
  *         schema:
  *           type: string
  *     requestBody:
@@ -110,80 +112,79 @@ router.get('/', authorizeRoles('Admin', 'Staff'), getAllUsers);
  *               password:
  *                 type: string
  *                 example: "NewPassword123"
- *                 description: "The new password for the user (hashed on server side)."
+ *                 description: "The new password for the customer (hashed on server side)."
  *               fullName:
  *                 type: string
  *                 example: "Jane Doe"
- *                 description: "The full name of the user."
+ *                 description: "The full name of the customer."
  *               gender:
  *                 type: string
  *                 example: "Female"
- *                 description: "The gender of the user."
+ *                 description: "The gender of the customer."
  *               birthDate:
  *                 type: string
  *                 format: date
  *                 example: "1985-05-15"
- *                 description: "The birth date of the user."
+ *                 description: "The birth date of the customer."
  *               phoneNumber:
  *                 type: string
  *                 example: "987-654-3210"
- *                 description: "The phone number of the user."
+ *                 description: "The phone number of the customer."
  *     responses:
  *       200:
- *         description: User updated successfully
+ *         description: Customer updated successfully
  *       400:
- *         description: Bad request
+ *         description: Bad request due to invalid body (password is not strong enough, wrong type, ...)
  *       404:
- *         description: User not found
+ *         description: Customer not found
  *       403:
  *         description: Forbidden
  */
-router.get('/:id', getUser);
+router.put('/:id', updateCustomer);
 
 
 /**
  * @swagger
  * components:
  *   schemas:
- *     User:
+ *     customer:
  *       type: object
  *       properties:
  *         id:
  *           type: string
- *           description: Unique identifier for the user.
+ *           description: Unique identifier for the customer.
  *         email:
  *           type: string
- *           description: Email address of the user.
+ *           description: Email address of the customer.
  *         fullName:
  *           type: string
- *           description: Full name of the user.
+ *           description: Full name of the customer.
  *         gender:
  *           type: string
- *           description: Gender of the user.
+ *           description: Gender of the customer.
  *         birthDate:
  *           type: string
  *           format: date
- *           description: Birth date of the user.
+ *           description: Birth date of the customer.
  *         phoneNumber:
  *           type: string
- *           description: Phone number of the user.
+ *           description: Phone number of the customer.
  *         status:
  *           type: boolean
- *           description: Status indicating if the user is active.
+ *           description: Status indicating if the customer is active.
  *         role:
  *           type: string
- *           description: Role of the user (Admin, Staff, Customer).
+ *           description: Role of the customer (Admin, Staff, Customer).
  *         point:
  *           type: integer
- *           description: Points accumulated by the user.
+ *           description: Points accumulated by the customer.
  *         version:
  *           type: integer
- *           description: Version number for the user record.
+ *           description: Version number for the customer record.
  *         isVerified:
  *           type: boolean
- *           description: Indicates if the user is verified.
+ *           description: Indicates if the customer is verified.
  */
-router.put('/:id', updateUser);
 
 
 

@@ -1,21 +1,37 @@
 import mongoose from 'mongoose';
+import { ROLES } from './roles.js';
+import bcrypt from 'bcrypt'
 
 const { Schema } = mongoose;
 
 // Base user schema options
-const options = { discriminatorKey: 'role', collection: 'users' };
+const options = { discriminatorKey: 'role', collection: 'users', retainKeyOrder: true };
 
 // Base User schema
 const userSchema = new Schema({
+    phoneNumber: {
+        type: String,
+        required: true,
+        unique: true,
+        validate: {
+            validator: function (v) {
+              return /^\d{10}$/.test(v);
+            },
+            message: "Invalid phone number. Must have 10 digits"
+          }
+    },
     email: {
         type: String,
         required: true,
-        unique: true
+        unique: true,
+        sparse: true,
+        match: [ /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/, 'Invalid email format' ]
     },
     password: {
         type: String,
         required: true,
-        select: false
+        select: false,
+        match: [ /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{6,}$/, 'Password is not strong is enough. Must have at least at least 6 characters and contains at least 1 Upcase letter, 1 Number and 1 Lowercase letter' ]
     },
     fullName: {
         type: String,
@@ -31,16 +47,11 @@ const userSchema = new Schema({
         required: true
 
     },
-    phoneNumber: {
-        type: String
-    },
     status: {
         type: Boolean,
-        default: true
     },
     isVerified: {
         type: Boolean,
-        default: false
     },
     resetPasswordToken: {
         type: new Schema({
@@ -55,20 +66,33 @@ const userSchema = new Schema({
     }
 }, options);
 
+//Hash password before save to database
+userSchema.pre("save",function(next){
+    if (!this.isModified('password')) {
+        return next();
+    }
+    this.password = bcrypt.hashSync(this.password,10)
+    next();
+})
 // Create the base User model
 export const User = mongoose.model('User', userSchema);
 
 // Discriminator for Customer
-export const Customer = User.discriminator('Customer', new Schema({
+export const Customer = User.discriminator(ROLES.CUSTOMER, new Schema({
     point: { type: Number, default: 0 }
 }));
 
 // Discriminator for Staff
-export const Staff = User.discriminator('Staff', new Schema({
+export const Staff = User.discriminator(ROLES.STAFF, new Schema({
     salary: { type: Number, default: null }
 }));
 
-export const Admin = User.discriminator('Admin', new mongoose.Schema({}, { _id: false }));
+export const Admin = User.discriminator(ROLES.ADMIN, new mongoose.Schema({}, { _id: false }));
+
+export const OnSiteCustomer = User.discriminator(ROLES.ONSITE_CUSTOMER, new Schema({
+    point: { type: Number, default: 0 }
+}));
+
 
 
 

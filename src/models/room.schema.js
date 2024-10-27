@@ -1,27 +1,27 @@
 import mongoose from 'mongoose';
 
 const roomSchema = new mongoose.Schema({
-    RoomNumber: {
+    roomNumber: {
         type: String,
         required: true,
         unique: true
     },
-    TypeId: {
+    typeId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'TypeRoom',
         required: true
     },
-    Description: {
+    description: {
         type: String
     },
-    Status: {
+    status: {
         type: Boolean,
         default: true
     },
-    Images: {
+    images: {
         type: [String]
     },
-    Price: {
+    price: {
         type: Number,
         required: true
     }

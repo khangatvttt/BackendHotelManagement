@@ -1,7 +1,8 @@
 import express from 'express';
 import swaggerDocs from './swagger.js'
 import connectDB from './src/config/databaseConfig.js';
-import userRoutes from './src/routes/userRoutes.js';
+import customerRoutes from './src/routes/customerRoutes.js';
+import staffRoutes from './src/routes/staffRoutes.js'
 import typeRoomRoutes from './src/routes/typeRoomRoutes.js'
 import roomRoutes from './src/routes/roomRoutes.js'
 import bookingRoutes from './src/routes/bookingRoutes.js'
@@ -13,6 +14,8 @@ import dotenv from 'dotenv';
 import cors from 'cors'
 import cookieParser from 'cookie-parser';
 import jwtMiddleware from './src/middlewares/jwtMiddleware.js'
+import authorizeRoles from './src/middlewares/authorizationMiddleware.js';
+import { ROLES } from './src/models/roles.js';
 
 
 dotenv.config();
@@ -54,7 +57,8 @@ app.use(jwtMiddleware)
 
 
 // Routes
-app.use('/api/users', userRoutes);
+app.use('/api/customers', customerRoutes);
+app.use('/api/staffs', authorizeRoles(ROLES.ADMIN, ROLES.STAFF), staffRoutes);
 app.use('/api/type-rooms', typeRoomRoutes);
 app.use('/api/rooms', roomRoutes)
 app.use('/api/bookings', bookingRoutes)

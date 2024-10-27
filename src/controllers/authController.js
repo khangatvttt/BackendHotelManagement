@@ -1,4 +1,4 @@
-import { User, Customer, Staff } from '../models/user.schema.js';
+import { User, Customer, Staff, OnSiteCustomer, Admin } from '../models/user.schema.js';
 import bcrypt from 'bcrypt'
 import UnauthorizedError from '../errors/unauthorizedError.js'
 import BadRequestError from '../errors/badRequestError.js'
@@ -8,6 +8,9 @@ import nodemailer from 'nodemailer';
 import dotenv from 'dotenv'
 import NotFoundError from '../errors/badRequestError.js';
 import crypto from 'crypto'
+import { ROLES } from '../models/roles.js';
+import { promisify } from 'util';
+
 
 dotenv.config()
 
@@ -44,6 +47,7 @@ export const login = async (req, res, next) => {
 
     const payload = {
       user_id: user._id,
+      role: user.role,
       email: user.email,
     }
 
@@ -78,18 +82,24 @@ export const login = async (req, res, next) => {
 
 export const signUp = async (req, res, next) => {
   try {
-    const { role, password, ...userData } = req.body;
+    const { role, ...userData } = req.body;
 
-    // Check if password is strong enough (at least 6 character, 1 Upcase letter, 1 Number and 1 Lowercase letter)
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{6,}$/;
-    if (!passwordRegex.test(password)) {
-      throw new BadRequestError("Password is not strong is enough. Must have at least at least 6 characters and contains at least 1 Upcase letter, 1 Number and 1 Lowercase letter");
+    //Register with OnSite Customer role
+    if (role == ROLES.ONSITE_CUSTOMER) {
+      const { fullName, birthDate, gender, phoneNumber } = req.body;
+      const userInfo = { fullName, birthDate, gender, phoneNumber };
+      //Dummy data to bypass validator
+      userInfo.email = `Dummy@dummy.com`;
+      userInfo.password = 'DummyPassword1';
+
+      const user = new OnSiteCustomer(userInfo);
+      await user.save();
+      // Remove email and password fields because OnSiteCustomer doesnt have those fields
+      await User.updateOne({ phoneNumber: phoneNumber }, { $unset: { email: 1, password: 1 }}, {runValidators:false})
+      res.status(201).send();
+      return;
     }
 
-    // Hash password
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
-    userData.password = hashedPassword;
 
     // Prevent user set some fields that are not allowed
     userData.status = true;
@@ -97,12 +107,20 @@ export const signUp = async (req, res, next) => {
     userData.isVerified = false;
     userData.resetPasswordToken = null;
 
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
-    sendVerifyEmail(userData.email, userData.fullName, baseUrl);
-
-    const newUser = new Customer(userData);
+    let newUser
+    if (role==ROLES.STAFF || role==ROLES.ADMIN){
+      userData.status = false //New Staff and Admin account is disable until Admin turn it on
+      role==ROLES.STAFF?newUser = new Staff(userData):newUser = new Admin(userData)
+    }
+    else {
+      newUser = new Customer(userData);
+    }
 
     await newUser.save();
+
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    await sendVerifyEmail(userData.email, userData.fullName, baseUrl);
+
     res.status(201).send();
   } catch (error) {
     next(error);
@@ -153,10 +171,10 @@ export const requestResetPassword = async (req, res, next) => {
       throw new NotFoundError(`User with email ${email} doesn't exist`);
     }
 
-    if (!user.isVerified || !user.status){
+    if (!user.isVerified || !user.status) {
       throw new ForbiddenError('This account is disabled')
     }
-    
+
     let token;
     let tokenExists = true
     while (tokenExists) {
@@ -229,7 +247,7 @@ export const logout = (req, res, next) => {
   res.status(200).send()
 }
 
-const sendVerifyEmail = (receiverEmail, name, baseUrl) => {
+const sendVerifyEmail = async (receiverEmail, name, baseUrl) => {
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     port: 587,
@@ -239,6 +257,9 @@ const sendVerifyEmail = (receiverEmail, name, baseUrl) => {
       pass: process.env.EMAIL_PASS,
     }
   });
+
+  const sendMailAsync = promisify(transporter.sendMail.bind(transporter));
+
 
   const verificationToken = jwtServices.generateVerificationToken({
     email: receiverEmail
@@ -260,14 +281,11 @@ const sendVerifyEmail = (receiverEmail, name, baseUrl) => {
     `,
   };
 
-  transporter.sendMail(mailOptions, function (error, _) {
-    if (error) {
-      throw error;
-    }
-  });
+  await sendMailAsync(mailOptions);
+
 }
 
-const sendResetPasswordEmail = (receiverEmail, name, token, baseUrl) => {
+const sendResetPasswordEmail = async (receiverEmail, name, token, baseUrl) => {
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     port: 587,
@@ -278,6 +296,7 @@ const sendResetPasswordEmail = (receiverEmail, name, token, baseUrl) => {
     }
   });
 
+  const sendMailAsync = promisify(transporter.sendMail.bind(transporter));
 
   const verificationLink = `${baseUrl}/api/auth/password-reset?token=${token}`;
 
@@ -295,10 +314,7 @@ const sendResetPasswordEmail = (receiverEmail, name, token, baseUrl) => {
     `,
   };
 
-  transporter.sendMail(mailOptions, function (error, _) {
-    if (error) {
-      throw error;
-    }
-  });
+  await sendMailAsync(mailOptions);
+
 }
 

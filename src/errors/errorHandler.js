@@ -25,12 +25,17 @@ export const errorHandler = (err, req, res, next) => {
 
     if (err.name == 'TypeError') {
         statusCode = 400;
-        //message = 'Invalid request body.';
+        message = 'Invalid request body.';
     }
 
     if (err.name === 'TokenExpiredError') {
         statusCode = 400;
         message = 'Token expired'
+    }
+
+    if (err.message && err.message.includes("sendMail")) {
+        console.error("Email error:", err.message);
+        return res.status(500).json({ message: "Failed to send email." });
     }
 
     // Handle other types of errors (if any)
