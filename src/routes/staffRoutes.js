@@ -17,8 +17,35 @@ const router = express.Router();
  * /api/staffs:
  *   get:
  *     summary: Get all Staffs
- *     description: This endpoint retrieves a list of all staffs. Only Admin can access this endpoint
+ *     description: This endpoint retrieves a list of all staffs, with optional filtering by phone, email, fullName, gender, and status. Only Admin can access this endpoint
  *     tags: [Staffs]
+ *     parameters:
+ *       - in: query
+ *         name: phone
+ *         schema:
+ *           type: string
+ *         description: Filter by phone number (must be exactly 10 digits).
+ *       - in: query
+ *         name: email
+ *         schema:
+ *           type: string
+ *         description: Filter by email address.
+ *       - in: query
+ *         name: fullName
+ *         schema:
+ *           type: string
+ *         description: Filter by full name (case-insensitive partial match).
+ *       - in: query
+ *         name: gender
+ *         schema:
+ *           type: string
+ *           enum: [Male, Female]
+ *         description: Filter by gender.
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: boolean
+ *         description: Filter by account status (true for active, false for inactive).
  *     responses:
  *       200:
  *         description: A list of staffs

@@ -5,7 +5,18 @@ import NotFoundError from '../errors/badRequestError.js';
 
 export const getAllCustomers = async (req, res, next) => {
   try {
-    const users = await User.find({ role: { $in: [ROLES.CUSTOMER, ROLES.ONSITE_CUSTOMER] } });
+    const { phone, email, fullName, gender, status } = req.query;
+
+    const query = {};
+    if (phone) query.phoneNumber = phone;
+    if (email) query.email = email;
+    if (fullName) query.fullName = { $regex: fullName, $options: 'i' };
+    if (gender) query.gender = gender;
+    if (status) query.status = status === 'true';
+
+    query.role = { $in: [ROLES.CUSTOMER, ROLES.ONSITE_CUSTOMER] }
+
+    const users = await User.find(query);
     res.status(200).json(users);
   } catch (error) {
     next(error);
@@ -53,6 +64,7 @@ export const updateCustomer = async (req, res, next) => {
       runValidators: true,
     });
 
+
     if (!updatedUser) {
       const updatedOnsiteCustomer = await OnSiteCustomer.findOneAndUpdate({_id: id}, updates, {
         new: true,
@@ -61,9 +73,13 @@ export const updateCustomer = async (req, res, next) => {
       if (!updatedOnsiteCustomer) {
         throw new NotFoundError(`Customer with id ${id} doesn't exist`);
       }
+      res.status(200).json(updatedOnsiteCustomer);
+    }
+    else {
+      res.status(200).json(updatedUser);
     }
 
-    res.status(200).send();
+
   } catch (error) {
     next(error);
   }

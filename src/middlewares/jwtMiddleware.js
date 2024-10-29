@@ -67,7 +67,7 @@ const handleTokenRefresh = async (req, res, next, refreshToken) => {
     res.cookie('access_token', newAccessToken, {
       httpOnly: true,
       sameSite: 'Strict',
-      maxAge: 1000 * 60 * 30, // 30m
+      maxAge: new Date(expiredTime * 1000),
     });
 
     res.cookie('refresh_token', newRefreshToken, {
@@ -85,7 +85,6 @@ const handleTokenRefresh = async (req, res, next, refreshToken) => {
     if (err.name === 'TokenExpiredError') {
       return next(new UnauthorizedError('Refresh token expired. Please login again.'));
     } else {
-      console.log(err)
       return next(new UnauthorizedError('Invalid refresh token.'));
     }
   }

@@ -5,8 +5,10 @@ import {
     verifyEmail,
     requestResetPassword,
     resetPassword,
-    logout
+    logout,
+    getCurrentUser
 } from '../controllers/authController.js'; 
+import jwtMiddleware from '../middlewares/jwtMiddleware.js'
 
 const router = express.Router();
 
@@ -182,5 +184,20 @@ router.post('/password-reset', resetPassword);
  *         description: Logged out successfully
  */
 router.get('/logout', logout);
+
+/**
+ * @swagger
+ * /api/auth/current-user:
+ *   get:
+ *     summary: Get user that is logging
+ *     tags: [Authentication]
+ *     description: Get user id and role that is logging. 
+ *     responses:
+ *       200:
+ *         description: Authenticated user info
+ *       401:
+ *         description: Not login yet
+ */
+router.get('/current-user', jwtMiddleware, getCurrentUser);
 
 export default router;

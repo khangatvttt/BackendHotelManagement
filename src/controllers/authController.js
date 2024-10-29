@@ -73,7 +73,10 @@ export const login = async (req, res, next) => {
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7d
     });
 
-    res.status(200).send();
+    res.status(200).send({
+      user_id: user._id,
+      role: user.role
+    });
 
   } catch (error) {
     next(error)
@@ -95,7 +98,7 @@ export const signUp = async (req, res, next) => {
       const user = new OnSiteCustomer(userInfo);
       await user.save();
       // Remove email and password fields because OnSiteCustomer doesnt have those fields
-      await User.updateOne({ phoneNumber: phoneNumber }, { $unset: { email: 1, password: 1 }}, {runValidators:false})
+      await User.updateOne({ phoneNumber: phoneNumber }, { $unset: { email: 1, password: 1 } }, { runValidators: false })
       res.status(201).send();
       return;
     }
@@ -108,9 +111,9 @@ export const signUp = async (req, res, next) => {
     userData.resetPasswordToken = null;
 
     let newUser
-    if (role==ROLES.STAFF || role==ROLES.ADMIN){
+    if (role == ROLES.STAFF || role == ROLES.ADMIN) {
       userData.status = false //New Staff and Admin account is disable until Admin turn it on
-      role==ROLES.STAFF?newUser = new Staff(userData):newUser = new Admin(userData)
+      role == ROLES.STAFF ? newUser = new Staff(userData) : newUser = new Admin(userData)
     }
     else {
       newUser = new Customer(userData);
@@ -316,5 +319,12 @@ const sendResetPasswordEmail = async (receiverEmail, name, token, baseUrl) => {
 
   await sendMailAsync(mailOptions);
 
+}
+
+export const getCurrentUser = async (req, res, next) => {
+    res.status(200).json({
+      user_id: req.user.id,
+      role: req.user.role
+    });
 }
 

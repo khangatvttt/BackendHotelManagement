@@ -6,8 +6,9 @@ import staffRoutes from './src/routes/staffRoutes.js'
 import typeRoomRoutes from './src/routes/typeRoomRoutes.js'
 import roomRoutes from './src/routes/roomRoutes.js'
 import bookingRoutes from './src/routes/bookingRoutes.js'
-import promotionRoutes from './src/routes/promotionRoutes.js'
+import voucherRoutes from './src/routes/voucherRoutes.js'
 import maintainScheduleRoutes from './src/routes/maintainScheduleRoutes.js'
+import overOccupancyChargeRoutes from './src/routes/overOccupancyChargeRoutes.js'
 import authRoutes from './src/routes/authRoutes.js'
 import { errorHandler } from './src/errors/errorHandler.js';
 import dotenv from 'dotenv';
@@ -62,8 +63,9 @@ app.use('/api/staffs', authorizeRoles(ROLES.ADMIN, ROLES.STAFF), staffRoutes);
 app.use('/api/type-rooms', typeRoomRoutes);
 app.use('/api/rooms', roomRoutes)
 app.use('/api/bookings', bookingRoutes)
-app.use('/api/promotions', promotionRoutes)
-app.use('/api/maintain-schedules', maintainScheduleRoutes)
+app.use('/api/vouchers', authorizeRoles(ROLES.ADMIN, ROLES.STAFF), voucherRoutes)
+app.use('/api/maintain-schedules', authorizeRoles(ROLES.ADMIN, ROLES.STAFF), maintainScheduleRoutes)
+app.use('/api/over-occupancy-charges', authorizeRoles(ROLES.ADMIN), overOccupancyChargeRoutes)
 
 
 app.use(errorHandler);

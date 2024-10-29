@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-const promotionSchema = new mongoose.Schema({
+const voucherSchema = new mongoose.Schema({
     code: {
         type: String,
         required: true,
@@ -38,8 +38,8 @@ const promotionSchema = new mongoose.Schema({
     },
     userUsedVoucher: [{
         type: mongoose.Schema.Types.ObjectId,
-        sref: 'User'
+        ref: 'User',
     }]
 });
 
-export default mongoose.model('Promotion', promotionSchema);
+export default mongoose.model('Voucher', voucherSchema);

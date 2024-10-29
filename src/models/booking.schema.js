@@ -2,12 +2,12 @@ import mongoose from 'mongoose';
 const { Schema } = mongoose;
 
 const bookingSchema = new mongoose.Schema({
-    userID: {
+    userId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true
     },
-    roomID: [{
+    roomIds: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Room',
         required: true
@@ -30,8 +30,10 @@ const bookingSchema = new mongoose.Schema({
         required: true
     },
     paidAmount: {
-        type: Number,
-        required: true
+        type: new Schema({
+            amount: Number,
+            latestPaidTime: Date
+        }, { _id: false }),
     },
     totalAmount: {
         type: Number,
@@ -43,8 +45,9 @@ const bookingSchema = new mongoose.Schema({
     },
     currentStatus: { //Cancel (false) or still reservation (true)
         type: Boolean,
-        required: true
+        default: true
     }
 });
+
 
 export default mongoose.model('Booking', bookingSchema);

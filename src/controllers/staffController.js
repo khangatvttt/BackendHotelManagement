@@ -5,7 +5,16 @@ import NotFoundError from '../errors/badRequestError.js';
 
 export const getAllStaffs = async (req, res, next) => {
   try {
-    const users = await Staff.find();
+    const { phone, email, fullName, gender, status } = req.query;
+
+    const query = {};
+    if (phone) query.phoneNumber = phone;
+    if (email) query.email = email;
+    if (fullName) query.fullName = { $regex: fullName, $options: 'i' };
+    if (gender) query.gender = gender;
+    if (status) query.status = status === 'true';
+
+    const users = await Staff.find(query);
     res.status(200).json(users);
   } catch (error) {
     next(error);
@@ -59,7 +68,7 @@ export const updateStaff = async (req, res, next) => {
       throw new NotFoundError(`Staff with id ${id} doesn't exist`);
     }
 
-    res.status(200).send();
+    res.status(200).json(updatedUser);
   } catch (error) {
     next(error);
   }

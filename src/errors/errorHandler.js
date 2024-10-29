@@ -25,7 +25,8 @@ export const errorHandler = (err, req, res, next) => {
 
     if (err.name == 'TypeError') {
         statusCode = 400;
-        message = 'Invalid request body.';
+        //message = 'Invalid request body.';
+        message = err.message
     }
 
     if (err.name === 'TokenExpiredError') {

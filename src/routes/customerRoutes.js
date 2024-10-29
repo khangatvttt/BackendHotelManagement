@@ -17,8 +17,35 @@ const router = express.Router();
  * /api/customers:
  *   get:
  *     summary: Get all customers
- *     description: This endpoint retrieves a list of all customers. Only Admin and Staff can access this endpoint
+ *     description: This endpoint retrieves a list of all customers, with optional filtering by phone, email, fullName, gender, and status. Only Admin and Staff can access this endpoint.
  *     tags: [Customers]
+ *     parameters:
+ *       - in: query
+ *         name: phone
+ *         schema:
+ *           type: string
+ *         description: Filter by phone number (must be exactly 10 digits).
+ *       - in: query
+ *         name: email
+ *         schema:
+ *           type: string
+ *         description: Filter by email address.
+ *       - in: query
+ *         name: fullName
+ *         schema:
+ *           type: string
+ *         description: Filter by full name (case-insensitive partial match).
+ *       - in: query
+ *         name: gender
+ *         schema:
+ *           type: string
+ *           enum: [Male, Female]
+ *         description: Filter by gender.
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: boolean
+ *         description: Filter by account status (true for active, false for inactive).
  *     responses:
  *       200:
  *         description: A list of customers
@@ -37,7 +64,7 @@ const router = express.Router();
  *                 "fullName": "11",
  *                 "gender": "Female",
  *                 "birthDate": "1985-05-15T00:00:00.000Z",
- *                 "phoneNumber": "987-654-3210",
+ *                 "phoneNumber": "9876543210",
  *                 "status": true,
  *                 "role": "Customer",
  *                 "point": 0,
@@ -50,7 +77,7 @@ const router = express.Router();
  *                 "fullName": "Jane Smith",
  *                 "gender": "Female",
  *                 "birthDate": "1985-05-15T00:00:00.000Z",
- *                 "phoneNumber": "987-654-3210",
+ *                 "phoneNumber": "9876543210",
  *                 "status": true,
  *                 "role": "Staff",
  *                 "salary": 50000,
