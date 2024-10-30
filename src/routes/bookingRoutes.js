@@ -85,6 +85,7 @@ const router = express.Router();
  *   post:
  *     summary: Create a new booking
  *     tags: [Bookings]
+ * 
  *     requestBody:
  *       required: true
  *       content:

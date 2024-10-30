@@ -43,9 +43,10 @@ const bookingSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    currentStatus: { //Cancel (false) or still reservation (true)
-        type: Boolean,
-        default: true
+    currentStatus: {
+        type: String,
+        enum: ['Reserved', 'Cancelled', 'Left'],
+        default: 'Reserved'
     }
 });
 

@@ -105,17 +105,22 @@ export const createBooking = async (req, res, next) => {
         }
 
         //Base price of this bill
+        const hours = Math.ceil((requestedCheckOut - requestedCheckIn) / (1000 * 60 * 60));
+        const days =  Math.floor(hours/24);
+        
         const basePrice = rooms.reduce((total, room) => {
-            return total + (room.typeId ? room.price : 0);
+            return total + room.price.dailyRate * days
+                         + room.price.hourlyRate * (hours-days*24) ;
         }, 0);
 
-        if (voucher) {
+        let voucherUse = null;
+        if (voucherCode) {
             //Check voucher
             const voucher = await Voucher.findOne({ code: voucherCode })
             if (!voucher) {
                 throw new BadRequestError("Invalid voucher code")
             }
-
+            voucherUse = voucher
             const currentDate = new Date();
             // Check voucher time
             if (currentDate < voucher.startDate || currentDate > voucher.endDate) {
@@ -139,7 +144,7 @@ export const createBooking = async (req, res, next) => {
         }
 
         // Actual price of this booking
-        const discountAmount = Math.min(basePrice * (voucher.discountPercentage / 100), voucher.maxDiscount);
+        const discountAmount = voucherUse ? Math.min(basePrice * (voucherUse.discountPercentage / 100), voucherUse.maxDiscount) : 0;
         const redeemedAmount = redeemedPoint ? redeemedPoint * 1000 : 0;
         const totalAmount = Math.round(basePrice - discountAmount - redeemedAmount + extraCharge);
 
@@ -182,7 +187,7 @@ export const getBookings = async (req, res, next) => {
         const query = {};
         if (userId) query.userId = userId;
         if (roomId) query.roomIds = roomId;
-        if (currentStatus) query.currentStatus = currentStatus === 'true';
+        if (currentStatus) query.currentStatus = currentStatus;
         if (checkInTime && checkOutTime) {
             query.checkInTime = { $gte: checkInTime };
             query.checkOutTime = { $lte: checkOutTime };
@@ -214,6 +219,10 @@ export const getBookingById = async (req, res, next) => {
         next(error);
     }
 };
+
+
+
+
 
 // Update a Booking by ID
 export const updateBooking = async (req, res, next) => {

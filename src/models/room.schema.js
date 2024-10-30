@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { Schema } from 'mongoose';
 
 const roomSchema = new mongoose.Schema({
     roomNumber: {
@@ -22,8 +23,11 @@ const roomSchema = new mongoose.Schema({
         type: [String]
     },
     price: {
-        type: Number,
-        required: true
+        type: new Schema({
+            hourlyRate: Number,
+            dailyRate: Number
+        }, { _id: false }),
+        require: true
     }
 });
 
