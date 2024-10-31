@@ -4,7 +4,9 @@ import {
     getRooms,
     getRoomById,
     updateRoom,
-    deleteRoom
+    deleteRoom,
+    getAvailableRooms,
+    getTopRatedRoom
 } from '../controllers/roomController.js';
 
 const router = express.Router();
@@ -14,6 +16,12 @@ router.post('/', createRoom);
 
 // Retrieve all Rooms
 router.get('/', getRooms);
+
+// Retrieve available rooms based on CheckInTime, CheckOutTime and TypeName
+router.get('/available', getAvailableRooms);
+
+// Retrieve top 4 room rating
+router.get('/rating', getTopRatedRoom);
 
 // Retrieve a Room by ID
 router.get('/:id', getRoomById);
