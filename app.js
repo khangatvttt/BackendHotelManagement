@@ -1,17 +1,22 @@
 import express from 'express';
+import swaggerDocs from './swagger.js'
 import connectDB from './src/config/databaseConfig.js';
-import userRoutes from './src/routes/userRoutes.js';
+import customerRoutes from './src/routes/customerRoutes.js';
+import staffRoutes from './src/routes/staffRoutes.js'
 import typeRoomRoutes from './src/routes/typeRoomRoutes.js'
 import roomRoutes from './src/routes/roomRoutes.js'
 import bookingRoutes from './src/routes/bookingRoutes.js'
-import promotionRoutes from './src/routes/promotionRoutes.js'
+import voucherRoutes from './src/routes/voucherRoutes.js'
 import maintainScheduleRoutes from './src/routes/maintainScheduleRoutes.js'
+import overOccupancyChargeRoutes from './src/routes/overOccupancyChargeRoutes.js'
 import authRoutes from './src/routes/authRoutes.js'
 import { errorHandler } from './src/errors/errorHandler.js';
 import dotenv from 'dotenv';
 import cors from 'cors'
 import cookieParser from 'cookie-parser';
 import jwtMiddleware from './src/middlewares/jwtMiddleware.js'
+import authorizeRoles from './src/middlewares/authorizationMiddleware.js';
+import { ROLES } from './src/models/roles.js';
 
 dotenv.config();
 const app = express();
@@ -41,20 +46,25 @@ app.use(cors({
   allowedHeaders: 'Content-Type,Authorization', // Headers that are allowed
 }));
 
-// Auth endpoint doesn't need jwt authentication
+// Endpoint doesn't need jwt authentication
 app.use('/api/auth', authRoutes)
+//API documents
+swaggerDocs(app, PORT)
+
 
 // JWT authentication
 app.use(jwtMiddleware)
 
 
 // Routes
-app.use('/api/users', userRoutes);
+app.use('/api/customers', customerRoutes);
+app.use('/api/staffs', authorizeRoles(ROLES.ADMIN, ROLES.STAFF), staffRoutes);
 app.use('/api/type-rooms', typeRoomRoutes);
 app.use('/api/rooms', roomRoutes)
 app.use('/api/bookings', bookingRoutes)
-app.use('/api/promotions', promotionRoutes)
-app.use('/api/maintain-schedules', maintainScheduleRoutes)
+app.use('/api/vouchers', authorizeRoles(ROLES.ADMIN, ROLES.STAFF), voucherRoutes)
+app.use('/api/maintain-schedules', authorizeRoles(ROLES.ADMIN, ROLES.STAFF), maintainScheduleRoutes)
+app.use('/api/over-occupancy-charges', authorizeRoles(ROLES.ADMIN), overOccupancyChargeRoutes)
 
 
 app.use(errorHandler);

@@ -1,49 +1,54 @@
 import mongoose from 'mongoose';
+const { Schema } = mongoose;
 
 const bookingSchema = new mongoose.Schema({
-    UserID: {
+    userId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true
     },
-    RoomID: [{
+    roomIds: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Room',
         required: true
     }],
-    CreatedAt: {
+    createdAt: {
         type: Date,
         default: Date.now
     },
-    CheckInTime: {
+    checkInTime: {
         type: Date,
         required: true
     },
-    CheckOutTime: {
+    checkOutTime: {
         type: Date,
         required: true
     },
-    Rating: {
-        type: Number,
-        min: 0,
-        max: 5
-    },
-    personNumber: { //How many people booked this time
+
+    numberOfGuests: { //How many people booked this time
         type: Number,
         required: true
     },
-    TotalAmount: {
+    paidAmount: {
+        type: new Schema({
+            amount: Number,
+            latestPaidTime: Date
+        }, { _id: false }),
+    },
+    totalAmount: {
         type: Number,
         required: true
     },
-    PaymentMethod: {
+    paymentMethod: {
         type: String,
         required: true
     },
-    CurrentStatus: { //Cancel (true) or still reservation (false)
-        type: Boolean,
-        required: true
+    currentStatus: {
+        type: String,
+        enum: ['Reserved', 'Cancelled', 'Left'],
+        default: 'Reserved'
     }
 });
+
 
 export default mongoose.model('Booking', bookingSchema);

@@ -1,24 +1,24 @@
 import mongoose from 'mongoose';
 
 const maintainScheduleSchema = new mongoose.Schema({
-    RoomID: {
+    roomID: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Room',
         required: true
     },
-    ScheduleDate: {
+    scheduleDate: {
         type: Date,
         required: true
     },
-    Description: {
+    description: {
         type: String,
         required: true
     },
-    Price: {
+    price: {
         type: Number,
         required: true
     },
-    Status: {
+    status: {
         type: Boolean,
         default: true
     }

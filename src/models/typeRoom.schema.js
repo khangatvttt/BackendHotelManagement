@@ -1,15 +1,15 @@
 import mongoose from 'mongoose';
 
 const typeRoomSchema = new mongoose.Schema({
-    Description: {
+    description: {
         type: String,
         required: true
     },
-    Typename: {
+    typename: {
         type: String,
         required: true
     },
-    Limit: {
+    limit: {
         type: Number,
         required: true
     }

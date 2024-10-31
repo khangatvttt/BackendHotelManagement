@@ -3,12 +3,48 @@ import TypeRoom from '../models/typeRoom.schema.js';
 import Booking from '../models/booking.schema.js';
 import NotFoundError from '../errors/notFoundError.js'
 import mongoose from 'mongoose';
+import bucket from '../config/firebaseConfig.js'
+import crypto from 'crypto'
 
 // Create a new Room
 export const createRoom = async (req, res, next) => {
     try {
-        // Check if TypeRoom exists
-        const typeRoom = await TypeRoom.findById(req.body.TypeId);
+        // if (!req.files || req.files.length === 0) {
+        //     return res.status(400).send('No files uploaded.');
+        // }
+
+        // const uploadedUrls = await Promise.all(req.files.map(async (file) => {
+        //     const fileName = crypto.randomUUID();
+        //     const firebaseFile = bucket.file(fileName);
+
+        //     const stream = firebaseFile.createWriteStream({
+        //         metadata: {
+        //             contentType: file.mimetype,
+        //         },
+        //     });
+
+        //     return new Promise((resolve, reject) => {
+        //         stream.on('error', (err) => {
+        //             console.error(err);
+        //             reject('File upload error');
+        //         });
+
+        //         stream.on('finish', async () => {
+        //             await firebaseFile.makePublic();
+        //             const publicUrl = `https://storage.googleapis.com/${bucket.name}/${firebaseFile.name}`;
+        //             resolve(publicUrl);
+        //         });
+
+        //         stream.end(file.buffer);
+        //     });
+        // }));
+
+        // res.status(200).send({ urls: uploadedUrls });
+
+
+
+        // Check if TypeRoom existsn
+        const typeRoom = await TypeRoom.findById(req.body.typeId);
         if (!typeRoom) {
             throw new NotFoundError(`Typeroom with id ${typeRoom} doesn't exist`)
         }

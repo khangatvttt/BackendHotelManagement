@@ -1,29 +1,33 @@
 import mongoose from 'mongoose';
+import { Schema } from 'mongoose';
 
 const roomSchema = new mongoose.Schema({
-    RoomNumber: {
+    roomNumber: {
         type: String,
         required: true,
         unique: true
     },
-    TypeId: {
+    typeId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'TypeRoom',
         required: true
     },
-    Description: {
+    description: {
         type: String
     },
-    Status: {
+    status: {
         type: Boolean,
         default: true
     },
-    Images: {
+    images: {
         type: [String]
     },
-    Price: {
-        type: Number,
-        required: true
+    price: {
+        type: new Schema({
+            hourlyRate: Number,
+            dailyRate: Number
+        }, { _id: false }),
+        require: true
     }
 });
 

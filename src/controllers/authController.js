@@ -1,4 +1,4 @@
-import { User, Customer, Staff } from '../models/user.schema.js';
+import { User, Customer, Staff, OnSiteCustomer, Admin } from '../models/user.schema.js';
 import bcrypt from 'bcrypt'
 import UnauthorizedError from '../errors/unauthorizedError.js'
 import BadRequestError from '../errors/badRequestError.js'
@@ -8,6 +8,9 @@ import nodemailer from 'nodemailer';
 import dotenv from 'dotenv'
 import NotFoundError from '../errors/badRequestError.js';
 import crypto from 'crypto'
+import { ROLES } from '../models/roles.js';
+import { promisify } from 'util';
+
 
 dotenv.config()
 
@@ -20,7 +23,7 @@ export const login = async (req, res, next) => {
       throw new BadRequestError('Invalid request body.');
     }
 
-    const user = await User.findOne({ email: email }).lean();
+    const user = await User.findOne({ email: email }).select('+password').lean();
     // User with this email doesn't exist
     if (!user) {
       throw new UnauthorizedError("Email or password is incorrect");
@@ -44,6 +47,7 @@ export const login = async (req, res, next) => {
 
     const payload = {
       user_id: user._id,
+      role: user.role,
       email: user.email,
     }
 
@@ -60,7 +64,7 @@ export const login = async (req, res, next) => {
     res.cookie('access_token', accessToken, {
       httpOnly: true,
       sameSite: 'Strict',
-      maxAge: 1000 * 60 * 30, // 30m
+      maxAge: 1000 * 60 * 60 * 24 * 7, // 7d
     });
 
     res.cookie('refresh_token', refreshToken, {
@@ -69,7 +73,10 @@ export const login = async (req, res, next) => {
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7d
     });
 
-    res.status(200).send();
+    res.status(200).send({
+      user_id: user._id,
+      role: user.role
+    });
 
   } catch (error) {
     next(error)
@@ -78,18 +85,24 @@ export const login = async (req, res, next) => {
 
 export const signUp = async (req, res, next) => {
   try {
-    const { role, password, ...userData } = req.body;
+    const { role, ...userData } = req.body;
 
-    // Check if password is strong enough (at least 6 character, 1 Upcase letter, 1 Number and 1 Lowercase letter)
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{6,}$/;
-    if (!passwordRegex.test(password)) {
-      throw new BadRequestError("Password is not strong is enough. Must have at least at least 6 characters and contains at least 1 Upcase letter, 1 Number and 1 Lowercase letter");
+    //Register with OnSite Customer role
+    if (role == ROLES.ONSITE_CUSTOMER) {
+      const { fullName, birthDate, gender, phoneNumber } = req.body;
+      const userInfo = { fullName, birthDate, gender, phoneNumber };
+      //Dummy data to bypass validator
+      userInfo.email = `Dummy@dummy.com`;
+      userInfo.password = 'DummyPassword1';
+
+      const user = new OnSiteCustomer(userInfo);
+      await user.save();
+      // Remove email and password fields because OnSiteCustomer doesnt have those fields
+      await User.updateOne({ phoneNumber: phoneNumber }, { $unset: { email: 1, password: 1 } }, { runValidators: false })
+      res.status(201).send();
+      return;
     }
 
-    // Hash password
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
-    userData.password = hashedPassword;
 
     // Prevent user set some fields that are not allowed
     userData.status = true;
@@ -97,12 +110,20 @@ export const signUp = async (req, res, next) => {
     userData.isVerified = false;
     userData.resetPasswordToken = null;
 
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
-    sendVerifyEmail(userData.email, userData.fullName, baseUrl);
-
-    const newUser = role === 'Customer' ? new Customer(userData) : new Staff(userData);
+    let newUser
+    if (role == ROLES.STAFF || role == ROLES.ADMIN) {
+      userData.status = false //New Staff and Admin account is disable until Admin turn it on
+      role == ROLES.STAFF ? newUser = new Staff(userData) : newUser = new Admin(userData)
+    }
+    else {
+      newUser = new Customer(userData);
+    }
 
     await newUser.save();
+
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    await sendVerifyEmail(userData.email, userData.fullName, baseUrl);
+
     res.status(201).send();
   } catch (error) {
     next(error);
@@ -113,12 +134,12 @@ export const verifyEmail = async (req, res, next) => {
   try {
     const token = req.query.token;
     if (!token) {
-      throw new UnauthorizedError('No token provided');
+      throw new BadRequestError('No token provided');
     }
 
     const payload = jwtServices.verifyToken(token);
     if (payload.token_type != 'verify_token') {
-      throw new UnauthorizedError('Invalid token type');
+      throw new BadRequestError('Invalid token type');
     }
 
     const email = payload.email;
@@ -152,6 +173,11 @@ export const requestResetPassword = async (req, res, next) => {
     if (!user) {
       throw new NotFoundError(`User with email ${email} doesn't exist`);
     }
+
+    if (!user.isVerified || !user.status) {
+      throw new ForbiddenError('This account is disabled')
+    }
+
     let token;
     let tokenExists = true
     while (tokenExists) {
@@ -181,7 +207,7 @@ export const requestResetPassword = async (req, res, next) => {
 export const resetPassword = async (req, res, next) => {
   try {
     const { token, newPassword } = req.body
-    const user = await User.findOne({ 'resetPasswordToken.token': token })
+    const user = await User.findOne({ 'resetPasswordToken.token': token }).select('+resetPasswordToken +password');
 
     if (!user) {
       throw new BadRequestError("Invalid reset password token")
@@ -224,7 +250,7 @@ export const logout = (req, res, next) => {
   res.status(200).send()
 }
 
-const sendVerifyEmail = (receiverEmail, name, baseUrl) => {
+const sendVerifyEmail = async (receiverEmail, name, baseUrl) => {
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     port: 587,
@@ -234,6 +260,9 @@ const sendVerifyEmail = (receiverEmail, name, baseUrl) => {
       pass: process.env.EMAIL_PASS,
     }
   });
+
+  const sendMailAsync = promisify(transporter.sendMail.bind(transporter));
+
 
   const verificationToken = jwtServices.generateVerificationToken({
     email: receiverEmail
@@ -255,14 +284,11 @@ const sendVerifyEmail = (receiverEmail, name, baseUrl) => {
     `,
   };
 
-  transporter.sendMail(mailOptions, function (error, _) {
-    if (error) {
-      throw error;
-    }
-  });
+  await sendMailAsync(mailOptions);
+
 }
 
-const sendResetPasswordEmail = (receiverEmail, name, token, baseUrl) => {
+const sendResetPasswordEmail = async (receiverEmail, name, token, baseUrl) => {
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     port: 587,
@@ -273,6 +299,7 @@ const sendResetPasswordEmail = (receiverEmail, name, token, baseUrl) => {
     }
   });
 
+  const sendMailAsync = promisify(transporter.sendMail.bind(transporter));
 
   const verificationLink = `${baseUrl}/api/auth/password-reset?token=${token}`;
 
@@ -290,10 +317,14 @@ const sendResetPasswordEmail = (receiverEmail, name, token, baseUrl) => {
     `,
   };
 
-  transporter.sendMail(mailOptions, function (error, _) {
-    if (error) {
-      throw error;
-    }
-  });
+  await sendMailAsync(mailOptions);
+
+}
+
+export const getCurrentUser = async (req, res, next) => {
+    res.status(200).json({
+      user_id: req.user.id,
+      role: req.user.role
+    });
 }
 

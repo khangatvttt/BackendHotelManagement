@@ -1,45 +1,45 @@
 import mongoose from 'mongoose';
 
-const promotionSchema = new mongoose.Schema({
-    Code: {
+const voucherSchema = new mongoose.Schema({
+    code: {
         type: String,
         required: true,
         unique: true
     },
-    Description: {
+    description: {
         type: String,
         required: true
     },
-    DiscountPercentage: {
+    discountPercentage: {
         type: Number,
         required: true,
         min: 0,
         max: 100
     },
-    StartDate: {
+    startDate: {
         type: Date,
         required: true
     },
-    EndDate: {
+    endDate: {
         type: Date,
         required: true
     },
-    MinToUse: {
+    minSpend: {
         type: Number,
         required: true
     },
-    MaxBeReduced: {
+    maxDiscount: {
         type: Number,
         required: true
     },
-    LimitUse: {
+    limitUse: {
         type: Number,
         required: true
     },
-    UsedUse: [{
+    userUsedVoucher: [{
         type: mongoose.Schema.Types.ObjectId,
-        sref: 'User'
+        ref: 'User',
     }]
 });
 
-export default mongoose.model('Promotion', promotionSchema);
+export default mongoose.model('Voucher', voucherSchema);

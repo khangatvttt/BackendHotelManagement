@@ -8,11 +8,13 @@ import {
     getAvailableRooms,
     getTopRatedRoom
 } from '../controllers/roomController.js';
+import multer from 'multer';
+const upload = multer({ storage: multer.memoryStorage() });
 
 const router = express.Router();
 
 // Create a new Room
-router.post('/', createRoom);
+router.post('/',upload.array('images', 10), createRoom);
 
 // Retrieve all Rooms
 router.get('/', getRooms);

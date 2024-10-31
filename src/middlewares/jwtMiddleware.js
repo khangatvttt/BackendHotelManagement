@@ -18,8 +18,9 @@ const jwtMiddleware = async (req, res, next) => {
       if (decodedAccessToken.token_type !== 'access_token') {
         throw new UnauthorizedError('Invalid access token.');
       }
-
-      req.user = decodedAccessToken.user_id;
+      req.user = {};
+      req.user.id = decodedAccessToken.user_id;
+      req.user.role = decodedAccessToken.role
       return next();
     } catch (err) {
       if (err.name === 'TokenExpiredError') {
@@ -43,15 +44,16 @@ const handleTokenRefresh = async (req, res, next, refreshToken) => {
     const decodedRefreshToken = jwtServices.verifyToken(refreshToken);
 
     // Find user and validate the refresh token stored in DB
-    const user = await User.findById(decodedRefreshToken.user_id);
-    if (!user || user.refreshToken !== refreshToken) {
+    const user = await User.findById(decodedRefreshToken.user_id).select('+refreshToken');;
+    if (!user || user.refreshToken != refreshToken) {
       throw new UnauthorizedError('Invalid refresh token. Please login again.');
     }
 
     // Generate new tokens
     const payload = { 
         user_id: user._id,
-        email: user.email 
+        email: user.email,
+        role: user.role
     };
     const newAccessToken = jwtServices.generateAccessToken(payload);
     const newRefreshToken = jwtServices.generateRefreshToken(refreshToken, payload);
@@ -65,7 +67,7 @@ const handleTokenRefresh = async (req, res, next, refreshToken) => {
     res.cookie('access_token', newAccessToken, {
       httpOnly: true,
       sameSite: 'Strict',
-      maxAge: 1000 * 60 * 30, // 30m
+      maxAge: new Date(expiredTime * 1000),
     });
 
     res.cookie('refresh_token', newRefreshToken, {
@@ -74,7 +76,9 @@ const handleTokenRefresh = async (req, res, next, refreshToken) => {
       expires: new Date(expiredTime * 1000), // Expiry from the decoded token
     });
 
-    req.user = user._id; // Attach the user to the request
+    req.user = {}
+    req.user.id = user._id; 
+    req.user.role = user.role
     next();
     
   } catch (err) {
