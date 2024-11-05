@@ -1,17 +1,21 @@
 import mongoose from 'mongoose';
 
 const scheduleSchema = new mongoose.Schema({
-    userID: {
+    userId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true
     },
-    shift: [{
-        type: mongoose.Schema.Types.ObjectId,
+    workDate: {
+        type: Date,
+        required: true
+    },
+    shifts: {
+        type: [mongoose.Schema.Types.ObjectId],
         ref: 'Shift',
         required: true
 
-    }]
+    }
 });
 
 export default mongoose.model('Schedule', scheduleSchema);

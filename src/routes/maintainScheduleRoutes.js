@@ -9,18 +9,18 @@ import {
 const router = express.Router();
 
 // Create a new MaintainSchedule
-router.post('/maintain-schedules', createMaintainSchedule);
+router.post('/', createMaintainSchedule);
 
 // Get all MaintainSchedules
-router.get('/maintain-schedules', getMaintainSchedules);
+router.get('/', getMaintainSchedules);
 
 // Get a single MaintainSchedule by ID
-router.get('/maintain-schedules/:id', getMaintainScheduleById);
+router.get('/:id', getMaintainScheduleById);
 
 // Update a MaintainSchedule by ID
-router.put('/maintain-schedules/:id', updateMaintainSchedule);
+router.put('/:id', updateMaintainSchedule);
 
 // Delete a MaintainSchedule by ID
-router.delete('/maintain-schedules/:id', deleteMaintainSchedule);
+router.delete('/:id', deleteMaintainSchedule);
 
 export default router;

@@ -6,9 +6,11 @@ import staffRoutes from './src/routes/staffRoutes.js'
 import typeRoomRoutes from './src/routes/typeRoomRoutes.js'
 import roomRoutes from './src/routes/roomRoutes.js'
 import bookingRoutes from './src/routes/bookingRoutes.js'
+import ratingRoutes from './src/routes/ratingRoute.js'
 import voucherRoutes from './src/routes/voucherRoutes.js'
 import maintainScheduleRoutes from './src/routes/maintainScheduleRoutes.js'
 import overOccupancyChargeRoutes from './src/routes/overOccupancyChargeRoutes.js'
+import shiftRoutes from './src/routes/shiftRoutes.js'
 import authRoutes from './src/routes/authRoutes.js'
 import { errorHandler } from './src/errors/errorHandler.js';
 import dotenv from 'dotenv';
@@ -66,6 +68,9 @@ app.use('/api/bookings', bookingRoutes)
 app.use('/api/vouchers', authorizeRoles(ROLES.ADMIN, ROLES.STAFF), voucherRoutes)
 app.use('/api/maintain-schedules', authorizeRoles(ROLES.ADMIN, ROLES.STAFF), maintainScheduleRoutes)
 app.use('/api/over-occupancy-charges', authorizeRoles(ROLES.ADMIN), overOccupancyChargeRoutes)
+app.use('/api/ratings', ratingRoutes)
+app.use('/api/shifts', authorizeRoles(ROLES.ADMIN, ROLES.STAFF), shiftRoutes)
+
 
 
 app.use(errorHandler);

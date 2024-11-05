@@ -1,3 +1,7 @@
+import dotenv from 'dotenv';
+
+dotenv.config();
+
 export const errorHandler = (err, req, res, next) => {
     // Default status code to 500 (internal server error)
     let statusCode = err.statusCode || 500;
@@ -7,7 +11,7 @@ export const errorHandler = (err, req, res, next) => {
     // Handle Mongoose validation errors
     if (err.name === 'ValidationError') {
         statusCode = 400;
-        message = Object.values(err.errors).map((error) => error.message).join(', ');
+        //message = Object.values(err.errors).map((error) => error.message).join(', ');
     }
 
     // Handle invalid ObjectId (CastError)
@@ -23,6 +27,19 @@ export const errorHandler = (err, req, res, next) => {
         message = `Duplicate value for field '${field}'`;
     }
 
+    // Excess number of file allowed
+    if (err.code === 'LIMIT_UNEXPECTED_FILE'){
+        statusCode = 400;
+        message = `Maximum images can upload is ${process.env.MAX_IMAGES}`
+    }
+
+    // Excess limit of file allowed
+    if (err.code === 'LIMIT_FILE_SIZE'){
+        statusCode = 400;
+        message = `File too large, excess limit file size allowed (${process.env.MAX_FILE_SIZE/1024/1024}MB)`
+    }
+
+
     if (err.name == 'TypeError') {
         statusCode = 400;
         //message = 'Invalid request body.';
@@ -35,8 +52,7 @@ export const errorHandler = (err, req, res, next) => {
     }
 
     if (err.message && err.message.includes("sendMail")) {
-        console.error("Email error:", err.message);
-        return res.status(500).json({ message: "Failed to send email." });
+        message= 'Failed to send email.'
     }
 
     // Handle other types of errors (if any)
