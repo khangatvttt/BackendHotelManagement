@@ -2,6 +2,7 @@ import Room from '../models/room.schema.js';
 import TypeRoom from '../models/typeRoom.schema.js';
 import Booking from '../models/booking.schema.js';
 import NotFoundError from '../errors/notFoundError.js'
+import Booking from '../models/booking.schema.js'
 import mongoose from 'mongoose';
 import bucket from '../config/firebaseConfig.js'
 import crypto from 'crypto'
@@ -9,48 +10,15 @@ import crypto from 'crypto'
 // Create a new Room
 export const createRoom = async (req, res, next) => {
     try {
-        // if (!req.files || req.files.length === 0) {
-        //     return res.status(400).send('No files uploaded.');
-        // }
-
-        // const uploadedUrls = await Promise.all(req.files.map(async (file) => {
-        //     const fileName = crypto.randomUUID();
-        //     const firebaseFile = bucket.file(fileName);
-
-        //     const stream = firebaseFile.createWriteStream({
-        //         metadata: {
-        //             contentType: file.mimetype,
-        //         },
-        //     });
-
-        //     return new Promise((resolve, reject) => {
-        //         stream.on('error', (err) => {
-        //             console.error(err);
-        //             reject('File upload error');
-        //         });
-
-        //         stream.on('finish', async () => {
-        //             await firebaseFile.makePublic();
-        //             const publicUrl = `https://storage.googleapis.com/${bucket.name}/${firebaseFile.name}`;
-        //             resolve(publicUrl);
-        //         });
-
-        //         stream.end(file.buffer);
-        //     });
-        // }));
-
-        // res.status(200).send({ urls: uploadedUrls });
-
-
-
+        const data = req.body;
         // Check if TypeRoom existsn
-        const typeRoom = await TypeRoom.findById(req.body.typeId);
+        const typeRoom = await TypeRoom.findById(data.typeId);
         if (!typeRoom) {
             throw new NotFoundError(`Typeroom with id ${typeRoom} doesn't exist`)
         }
-        // Create new room
-        const newRoom = new Room(req.body);
-        await newRoom.save();
+
+        const newRoom = new Room(data);
+        await newRoom.save()
         res.status(201).json(newRoom);
     } catch (error) {
         next(error);
@@ -60,6 +28,16 @@ export const createRoom = async (req, res, next) => {
 // Get all Rooms
 export const getRooms = async (req, res, next) => {
     try {
+        const {typeId, status} = req.query
+        const query = {};
+        if (typeId) query.typeId = typeId;
+        if (status) query.status = status === 'true';
+ 
+        const rooms = await Room.find(query).populate({
+            path: 'typeId',
+            select: 'images typename'
+        });
+        res.status(200).json(rooms);
         let page = parseInt(req.query.page) || 1;
         if (page < 1) page = 1;
 
@@ -102,7 +80,10 @@ export const getRooms = async (req, res, next) => {
 // Get a single Room by ID
 export const getRoomById = async (req, res, next) => {
     try {
-        const room = await Room.findById(req.params.id).populate('TypeId');
+        const room = await Room.findById(req.params.id).populate({
+            path: 'typeId',
+            select: 'images typename'
+        });
         if (!room) {
             throw new NotFoundError(`Room with id ${req.params.id} doesn't exist`);
         }
@@ -136,14 +117,21 @@ export const updateRoom = async (req, res, next) => {
     }
 };
 
-// Delete a Room by ID
-export const deleteRoom = async (req, res, next) => {
+export const getBookedTimeOfRoom = async (req, res, next) => {
     try {
-        const deletedRoom = await Room.findByIdAndDelete(req.params.id);
-        if (!deletedRoom) {
-            throw new NotFoundError(`Room with id ${req.params.id} doesn't exist`);
+        const roomId = req.params.id;
+        const room = await Room.findById(roomId);
+        if (!room) {
+            throw new NotFoundError(`Room with id ${roomId} doesn't exist`);
         }
-        res.status(200).json();
+
+        const bookings = await Booking.find({
+            roomIds: { $in: [roomId] },
+            $or: [{ checkInTime: { $gt: new Date() } }, { checkOutTime: { $gt: new Date() } }],
+        })
+            .select('checkInTime checkOutTime -_id');
+
+        res.status(200).json(bookings);
     } catch (error) {
         next(error);
     }

@@ -1,12 +1,12 @@
 import mongoose from 'mongoose';
 
 const maintainScheduleSchema = new mongoose.Schema({
-    roomID: {
+    roomId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Room',
         required: true
     },
-    scheduleDate: {
+    maintainDate: {
         type: Date,
         required: true
     },
@@ -18,6 +18,7 @@ const maintainScheduleSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
+    // False is cancelled
     status: {
         type: Boolean,
         default: true

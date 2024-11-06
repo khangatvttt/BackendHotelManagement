@@ -1,9 +1,69 @@
 import TypeRoom from '../models/typeRoom.schema.js';
+import bucket from '../config/firebaseConfig.js'
+import crypto from 'crypto'
+import Joi from 'joi';
+import Booking from '../models/booking.schema.js';
+import Room from '../models/room.schema.js';
+import BadRequestError from '../errors/badRequestError.js'
+import Rating from '../models/rating.schema.js'
 
 // Create a new TypeRoom
 export const createTypeRoom = async (req, res, next) => {
     try {
-        const newTypeRoom = new TypeRoom(req.body);
+
+        const bodySchema = Joi.object({
+            description: Joi.string().optional(),
+            limit: Joi.number().integer().required(),
+            typename: Joi.string().required(),
+            price: Joi.object({
+                hourlyRate: Joi.number().required(),
+                dailyRate: Joi.number().required()
+            }).required()
+        });
+
+        const { error } = bodySchema.validate(req.body);
+
+        if (error) {
+            throw error;
+        }
+
+        const data = req.body;
+
+        // Handle upload image
+        let uploadedUrls = [];
+        if (req.files && req.files.length !== 0) {
+
+            uploadedUrls = await Promise.all(req.files.map(async (file) => {
+                const fileName = crypto.randomUUID();
+                const firebaseFile = bucket.file(fileName);
+
+                const stream = firebaseFile.createWriteStream({
+                    metadata: {
+                        contentType: file.mimetype,
+                    },
+                });
+
+                return new Promise((resolve, reject) => {
+                    stream.on('error', (err) => {
+                        reject(`File upload error. Error: ${err}`);
+                    });
+
+                    stream.on('finish', async () => {
+                        await firebaseFile.makePublic();
+                        const publicUrl = `https://storage.googleapis.com/${bucket.name}/${firebaseFile.name}`;
+                        resolve(publicUrl);
+                    });
+
+                    stream.end(file.buffer);
+                });
+            }));
+
+        }
+
+        // Link images that have pushed to firebase
+        data.images = uploadedUrls
+
+        const newTypeRoom = new TypeRoom(data);
         await newTypeRoom.save();
         res.status(201).json(newTypeRoom);
     } catch (error) {
@@ -14,7 +74,86 @@ export const createTypeRoom = async (req, res, next) => {
 // Get all TypeRooms
 export const getTypeRooms = async (req, res, next) => {
     try {
-        const typeRooms = await TypeRoom.find();
+        const querySchema = Joi.object({
+            checkInTime: Joi.string().isoDate().optional(),
+            checkOutTime: Joi.string().isoDate().optional(),
+            limit: Joi.number().integer().min(1).optional(),
+        }).and('checkInTime', 'checkOutTime');
+
+        const { error } = querySchema.validate(req.query)
+        if (error) {
+            throw error;
+        }
+
+        const query = {};
+        if (req.query.limit) {
+            query.limit = req.query.limit;
+        }
+
+        const checkInTime = new Date(req.query.checkInTime);
+        const checkOutTime = new Date(req.query.checkOutTime);
+        // Two hour after check out for room services
+        const adjustedCheckOut = new Date(checkOutTime.getTime() + 2 * 60 * 60 * 1000); // 2 hours after check-out
+
+        if (checkInTime > checkOutTime || checkInTime.getTime() < Date.now()) {
+            throw new BadRequestError("checkInTime must be before checkOutTime and be a date in future");
+        }
+
+        // Find typeRooms
+        const typeRooms = await TypeRoom.find(query).lean();
+
+        // Rooms that are booked in selected time
+        const conflictBookings = await Booking.find({
+            currentStatus: 'Reserved',
+            $or: [
+                { checkInTime: { $lt: adjustedCheckOut }, checkOutTime: { $gt: checkInTime } }
+            ]
+        }).select('roomIds');
+
+        let bookedRoomIds = conflictBookings.flatMap(booking => booking.roomIds);
+        bookedRoomIds = bookedRoomIds.map(room => room.toString())
+        // Caculate how many room available
+        for (const type of typeRooms) {
+            const roomsOfType = await Room.find({
+                typeId: type._id,
+                status: true
+            }).select('_id');
+            const allRoomsThisType = roomsOfType.map(room => room._id);
+
+
+
+            // Remove all rooms that are booked
+            const availableRooms = allRoomsThisType.filter(room => !bookedRoomIds.includes(room.toString()));
+            // Number of rooms that are available for booking
+            type.availableRoom = availableRooms.length;
+
+            // Average rating score and total ratings for this type
+            const rating = {}
+            const result = await Rating.aggregate([
+                { $match: { typeRoomId: type._id } },
+                {
+                    $group: {
+                        _id: "$typeRoomId",
+                        averageScore: { $avg: "$score" }, 
+                        ratingCount: { $sum: 1 }
+                    }
+                }
+            ]);
+
+            if (result.length>0){
+                rating.averageScore = Math.round(result[0].averageScore * 10) / 10;
+                rating.totalRating = result[0].ratingCount;
+            }
+            else{
+                rating.averageScore = null;
+                rating.totalRating = 0;
+            }
+
+            type.rating = rating;
+
+        }
+
+
         res.status(200).json(typeRooms);
     } catch (error) {
         next(error);
@@ -37,29 +176,76 @@ export const getTypeRoomById = async (req, res, next) => {
 // Update a TypeRoom by ID
 export const updateTypeRoom = async (req, res, next) => {
     try {
-        const updatedTypeRoom = await TypeRoom.findByIdAndUpdate(
-            req.params.id,
-            req.body,
-            { new: true, runValidators: true}
-        );
-        if (!updatedTypeRoom) {
+        const bodySchema = Joi.object({
+            description: Joi.string().optional(),
+            limit: Joi.number().integer().optional(),
+            typename: Joi.string().optional(),
+            price: Joi.object({
+                hourlyRate: Joi.number().required(),
+                dailyRate: Joi.number().required()
+            }).optional(),
+            imagesToRemove: Joi.array().items(Joi.string().required()).optional()
+        });
+
+        const { error } = bodySchema.validate(req.body);
+
+        if (error) {
+            throw error;
+        }
+
+        // Check typeId
+        const findedType = TypeRoom.findById(req.params.id)
+        if (!findedType) {
             throw new NotFoundError(`TypeRoom with id ${req.params.id} doesn't exist`);
         }
-        res.status(200).json(updatedTypeRoom);
+
+        // Images are added to current images
+        let uploadedUrls = [];
+        if (req.files && req.files.length !== 0) {
+
+            uploadedUrls = await Promise.all(req.files.map(async (file) => {
+                const fileName = crypto.randomUUID();
+                const firebaseFile = bucket.file(fileName);
+
+                const stream = firebaseFile.createWriteStream({
+                    metadata: {
+                        contentType: file.mimetype,
+                    },
+                });
+
+                return new Promise((resolve, reject) => {
+                    stream.on('error', (err) => {
+                        reject(`File upload error. Error: ${err}`);
+                    });
+
+                    stream.on('finish', async () => {
+                        await firebaseFile.makePublic();
+                        const publicUrl = `https://storage.googleapis.com/${bucket.name}/${firebaseFile.name}`;
+                        resolve(publicUrl);
+                    });
+
+                    stream.end(file.buffer);
+                });
+            }));
+
+        }
+
+        const addImages = {
+            ...req.body,
+            $pull: { images: { $in: req.body.imagesToRemove || [] } },
+        };
+        const firstUpdated = await TypeRoom.findByIdAndUpdate(
+            req.params.id,
+            addImages,
+            { new: true, runValidators: true }
+        );
+
+        firstUpdated.images.push(...uploadedUrls);
+        const updateTypeRoom = await firstUpdated.save()
+
+        res.status(200).json(updateTypeRoom);
     } catch (error) {
         next(error);
     }
 };
 
-// Delete a TypeRoom by ID
-export const deleteTypeRoom = async (req, res, next) => {
-    try {
-        const deletedTypeRoom = await TypeRoom.findByIdAndDelete(req.params.id);
-        if (!deletedTypeRoom) {
-            throw new NotFoundError(`Typeroom with id ${req.params.id} doesn't exist`)
-        }
-        res.status(200).json();
-    } catch (error) {
-        next(error);
-    }
-};

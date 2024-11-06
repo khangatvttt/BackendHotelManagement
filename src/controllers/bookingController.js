@@ -1,5 +1,6 @@
 import Booking from '../models/booking.schema.js';
-import Room from '../models/room.schema.js';
+import Room from '../models/room.schema.js'
+import TypeRoom from '../models/typeRoom.schema.js'
 import OverOccupancyCharge from '../models/overOccupancyCharge.schema.js'
 import { User } from '../models/user.schema.js';
 import NotFoundError from '../errors/notFoundError.js';
@@ -8,27 +9,38 @@ import BadRequestError from '../errors/badRequestError.js'
 import Voucher from '../models/voucher.schema.js'
 import ForbiddenError from '../errors/forbiddenError.js';
 import mongoose from 'mongoose';
+import Joi from 'joi';
 
 // Create a new Booking
 export const createBooking = async (req, res, next) => {
     const session = await mongoose.startSession();
     session.startTransaction();
     try {
-        const { userId, roomIds, checkInTime, checkOutTime, paidAmount, numberOfGuests, redeemedPoint, voucherCode, paymentMethod } = req.body;
+        const { userId, typeRooms, checkInTime, checkOutTime, paidAmount, numberOfGuests, redeemedPoint, voucherCode, paymentMethod } = req.body;
         checkPermisson(req.user, userId)
 
         // Check the input
-        if (!paymentMethod) {
-            throw new BadRequestError("Missing paymentMethod field");
-        }
-        if (!Number.isInteger(numberOfGuests)) {
-            throw new BadRequestError("Invalid type for the numberOfGuests field. An integer is required.");
-        }
-        if (redeemedPoint !== undefined && !Number.isInteger(redeemedPoint)) {
-            throw new BadRequestError("Invalid type for redeemedPoint field. An integer is required.");
-        }
-        if (typeof paidAmount !== 'number') {
-            throw new BadRequestError("Invalid type for the paidAmount field. A number is required.");
+        const shemaBody = Joi.object({
+            typeRooms: Joi.array()
+                .items(
+                    Joi.object({
+                        typeId: Joi.string().required(),
+                        numberOfRooms: Joi.number().integer().greater(0).required()
+                    })
+                )
+                .required(),
+            userId: Joi.string().required(),
+            numberOfGuests: Joi.number().integer().required(),
+            checkInTime: Joi.date().required(),
+            checkOutTime: Joi.date().required(),
+            paidAmount: Joi.number().required(),
+            redeemedPoint: Joi.number().integer().optional(),
+            voucherCode: Joi.string().optional(),
+            paymentMethod: Joi.string().required()
+        });
+        const { error } = shemaBody.validate(req.body);
+        if (error) {
+            throw error;
         }
 
         // Check if user exists
@@ -38,20 +50,23 @@ export const createBooking = async (req, res, next) => {
         }
 
         // Check user's point
-        if (user.point < redeemedPoint) {
-            throw new BadRequestError("This user's points are not enough to fulfill the request.")
+        if (redeemedPoint) {
+            if (user.point < redeemedPoint) {
+                throw new BadRequestError("This user's points are not enough to fulfill the request.")
+            }
         }
 
-        // Check if roomIds contains unique values
-        const uniqueRoomIds = new Set(roomIds);
-        if (uniqueRoomIds.size !== roomIds.length) {
-            throw new BadRequestError('Duplicate value found in roomIds.')
+        // Check if types contains unique typeId
+        const typeIds = typeRooms.map(type => type.typeId);
+        const uniqueTypeIds = new Set(typeIds);
+        if (uniqueTypeIds.size !== typeIds.length) {
+            throw new BadRequestError('Duplicate typeId found in typeRooms.')
         }
 
-        // Check if Rooms exist
-        const rooms = await Room.find({ _id: { $in: roomIds } }).populate('typeId');
-        if (rooms.length !== roomIds.length) {
-            throw new NotFoundError(`One or more Room IDs provided do not exist`);
+        // Check if TypeRooms exist
+        const types = await TypeRoom.find({ _id: { $in: typeIds } });
+        if (types.length !== typeIds.length) {
+            throw new NotFoundError(`One or more TypeRoom IDs provided do not exist`);
         }
 
         // Check checkInTime and checkOutTime
@@ -59,30 +74,48 @@ export const createBooking = async (req, res, next) => {
         const requestedCheckOut = new Date(checkOutTime);
 
         if (requestedCheckIn > requestedCheckOut || requestedCheckIn.getTime() < Date.now()) {
-            throw new BadRequestError("Invalid check-in/check-out time.");
+            throw new BadRequestError("checkInTime must be before checkOutTime and be a date in future");
         }
-
         // Two hour after check out for room services
         const adjustedCheckOut = new Date(requestedCheckOut.getTime() + 2 * 60 * 60 * 1000); // 2 hours after check-out
 
-        // Check if any rooms in roomIds are unavailable for the requested time
-        const conflictingBookings = await Booking.find({
-            roomIds: { $in: roomIds },
-            currentStatus: true,
+        // Rooms that are booked in selected time
+        const conflictBookings = await Booking.find({
+            currentStatus: 'Reserved',
             $or: [
-                { checkInTime: { $lt: adjustedCheckOut }, checkOutTime: { $gt: requestedCheckIn } },
-            ],
-        });
+                { checkInTime: { $lt: adjustedCheckOut }, checkOutTime: { $gt: requestedCheckIn } }
+            ]
+        }).select('roomIds');
 
-        if (conflictingBookings.length > 0) {
-            throw new BadRequestError('One or more rooms requested are unavailable for the selected booking time.')
+        let bookedRoomIds = conflictBookings.flatMap(booking => booking.roomIds);
+        bookedRoomIds = bookedRoomIds.map(room => room.toString())
+        const rooms = []
+        //console.log(bookedRoomIds)
+        for (const type of types) {
+            const roomsOfType = await Room.find({
+                typeId: type._id,
+                status: true
+            }).select('_id');
+            const allRoomsThisType = roomsOfType.map(room => room._id);
+
+            // Get number of rooms that needed
+            const requestNumber = typeRooms.find(room => room.typeId == type._id).numberOfRooms;
+
+            // Remove all rooms that are booked
+            const availableRooms = allRoomsThisType.filter(room => !bookedRoomIds.includes(room.toString()));
+
+            // Check if have enough rooms to fulfill the request
+            if (availableRooms.length < requestNumber) {
+                throw new BadRequestError(`There isn't enough rooms for typeId ${type._id}. Request: ${requestNumber}, available: ${availableRooms.length}`)
+            }
+
+            rooms.push(...availableRooms.slice(0, requestNumber));
         }
 
-
-
         // Calculate the total limit of guests
-        const totalGuestsAllowed = rooms.reduce((total, room) => {
-            return total + (room.typeId ? room.typeId.limit : 0);
+        const totalGuestsAllowed = types.reduce((total, type) => {
+            const numberOfRooms = typeRooms.find(typeInput => typeInput.typeId == type._id).numberOfRooms;
+            return total + type.limit * numberOfRooms;
         }, 0);
 
         const excessGuest = numberOfGuests - totalGuestsAllowed
@@ -106,11 +139,12 @@ export const createBooking = async (req, res, next) => {
 
         //Base price of this bill
         const hours = Math.ceil((requestedCheckOut - requestedCheckIn) / (1000 * 60 * 60));
-        const days =  Math.floor(hours/24);
-        
-        const basePrice = rooms.reduce((total, room) => {
-            return total + room.price.dailyRate * days
-                         + room.price.hourlyRate * (hours-days*24) ;
+        const days = Math.floor(hours / 24);
+
+        const basePrice = types.reduce((total, type) => {
+            const numberOfRooms = typeRooms.find(typeInput => typeInput.typeId == type._id).numberOfRooms;
+            return total + (type.price.dailyRate * days
+                + type.price.hourlyRate * (hours - days * 24)) * numberOfRooms;
         }, 0);
 
         let voucherUse = null;
@@ -159,22 +193,25 @@ export const createBooking = async (req, res, next) => {
             latestPaidTime: Date.now()
         }
 
-        const bookingData = { userId, roomIds, checkInTime, checkOutTime, numberOfGuests, totalAmount, paymentMethod };
-        bookingData.paidAmount = paidAmountData
+
+        const bookingData = { userId, checkInTime, checkOutTime, numberOfGuests, totalAmount, paymentMethod };
+        bookingData.paidAmount = paidAmountData;
+        bookingData.roomIds = rooms
         const newBooking = new Booking(bookingData);
         await newBooking.save();
 
-
-
         // Deduct user points after redemption
-        user.point = user.point - redeemedPoint;
-        user.save()
+        if (redeemedPoint) {
+            user.point = user.point - redeemedPoint;
+            await user.save()
+        }
 
         await session.commitTransaction();
-
+        session.endSession()
         res.status(201).json(newBooking);
     } catch (error) {
         await session.abortTransaction();
+        session.endSession()
         next(error);
     }
 };
@@ -207,13 +244,24 @@ export const getBookingById = async (req, res, next) => {
     try {
 
         const booking = await Booking.findById(req.params.id)
-            .populate('userId')
-            .populate('roomIds');
-        checkPermisson(req.user, booking.userId._id)
+            .populate({
+                path: 'userId',
+                select: 'fullName phoneNumber email'
+            })
+            .populate({
+                path: 'roomIds',
+                populate: {
+                    path: 'typeId',
+                    select: 'typename'
+                }
+            });
 
         if (!booking) {
             throw new NotFoundError(`Booking with id ${req.params.id} doesn't exist`);
         }
+        checkPermisson(req.user, booking.userId._id)
+
+
         res.status(200).json(booking);
     } catch (error) {
         next(error);
@@ -228,8 +276,21 @@ export const getBookingById = async (req, res, next) => {
 export const updateBooking = async (req, res, next) => {
     try {
 
-        const updateBooking = req.body
-        const bookingId = req.params.id
+        const updateBooking = req.body;
+        const bookingId = req.params.id;
+
+        // Customer can only update the currentStatus field 
+        if (req.user.role == ROLES.CUSTOMER) {
+            const booking = await Booking.findById(bookingId);
+            if (!booking) {
+                throw new NotFoundError(`Booking with id ${bookingId} doesn't exist`);
+            }
+            booking.currentStatus = req.body.currentStatus;
+            await booking.save();
+            res.status(200).send();
+        }
+
+        // Staff or adminn update
         if (updateBooking.userId) {
             // Check if user exists
             const user = await User.findOne({ role: { $in: [ROLES.CUSTOMER, ROLES.ONSITE_CUSTOMER] }, _id: updateBooking.userId });

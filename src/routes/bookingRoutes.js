@@ -93,47 +93,63 @@ const router = express.Router();
  *           schema:
  *             type: object
  *             properties:
- *              userId:
- *                  type: string
- *                  description: ID of the user who made the booking
- *              roomIds:
- *                  type: array
- *                  items:
- *                      type: string
- *                      description: List of room IDs associated with the booking
- *              checkInTime:
- *                  type: string
- *                  format: date-time
- *                  description: Booking check-in date and time
- *              checkOutTime:
- *                  type: string
- *                  format: date-time
- *                  description: Booking check-out date and time
- *              numberOfGuests:
- *                  type: integer
- *                  description: Number of guests included in the booking
- *              paidAmount:
- *                  type: number
- *                  description: Amount that paid for deposit
- *              redeemedPoint:
- *                  type: integer
- *                  description: The point that uses to exchange for discount
- *              voucherCode:
- *                  type: string
- *                  description: Voucher that use for this booking
- *              paymentMethod:
- *                  type: string
- *                  description: Payment method for the booking
+ *               userId:
+ *                 type: string
+ *                 description: ID of the user who made the booking
+ *               typeRooms:
+ *                 type: array
+ *                 description: List of room types and the number of rooms booked for each type
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     typeId:
+ *                       type: string
+ *                       description: ID of the room type
+ *                     numberOfRooms:
+ *                       type: integer
+ *                       description: Number of rooms booked for this type
+ *               checkInTime:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Booking check-in date and time
+ *               checkOutTime:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Booking check-out date and time
+ *               numberOfGuests:
+ *                 type: integer
+ *                 description: Number of guests included in the booking
+ *               paidAmount:
+ *                 type: number
+ *                 description: Amount paid as deposit
+ *               redeemedPoint:
+ *                 type: integer
+ *                 description: Points used for discount
+ *               voucherCode:
+ *                 type: string
+ *                 description: Voucher code used for this booking
+ *               paymentMethod:
+ *                 type: string
+ *                 description: Payment method for the booking
  *           example:
- *                  userId: "60e8b2f4c90e5c1f6c4d8f23"
- *                  roomIds: ["60e8b2f4c90e5c1f6c4d8f24", "60e8b2f4c90e5c1f6c4d8f25"]
- *                  checkInTime: "2023-11-20T14:00:00.000Z"
- *                  checkOutTime: "2023-11-22T12:00:00.000Z"
- *                  numberOfGuests: 2
- *                  paidAmount: 200
- *                  redeemedPoint: 100
- *                  voucherCode: SALE200
- *                  paymentMethod: "Credit Card"
+ *             userId: "60e8b2f4c90e5c1f6c4d8f23"
+ *             typeRooms: [
+ *               {
+ *                 typeId: "6705f9e148140aaf9f1ac9cb",
+ *                 numberOfRooms: 1
+ *               },
+ *               {
+ *                 typeId: "6705fad548140aaf9f1ac9cd",
+ *                 numberOfRooms: 1
+ *               }
+ *             ]
+ *             checkInTime: "2023-11-20T14:00:00.000Z"
+ *             checkOutTime: "2023-11-22T12:00:00.000Z"
+ *             numberOfGuests: 2
+ *             paidAmount: 200
+ *             redeemedPoint: 100
+ *             voucherCode: "SALE200"
+ *             paymentMethod: "Credit Card"
  *     responses:
  *       201:
  *         description: Booking created successfully
@@ -145,6 +161,7 @@ const router = express.Router();
  *         description: Bad request
  */
 router.post('/', createBooking);
+
 
 /**
  * @swagger

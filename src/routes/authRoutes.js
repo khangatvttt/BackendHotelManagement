@@ -42,6 +42,11 @@ const router = express.Router();
  *     responses:
  *       200:
  *         description: Login successful
+ *         content:
+ *           application/json:
+ *             example:
+ *               user_id: "60f7d93d2b4f4c001ed1f4c8"
+ *               role: "Customer"
  *       401:
  *         description: Login failed due to bad credential
  *       403:
@@ -69,7 +74,8 @@ router.post('/login', login);
  *                 example: "newuser@gmail.com"
  *               password:
  *                 type: string
- *                 description: "Must have at least 6 characters, one lowercase, one uppercase and one digit"
+ *                 description: "Must have at least 6 characters, one lowercase,
+ *                                                       one uppercase and one digit"
  *                 example: "NewUser1234"
  *               fullName:
  *                 type: string
@@ -195,6 +201,11 @@ router.get('/logout', logout);
  *     responses:
  *       200:
  *         description: Authenticated user info
+ *         content:
+ *           application/json:
+ *             example:
+ *               user_id: "60f7d93d2b4f4c001ed1f4c8"
+ *               role: "Customer"
  *       401:
  *         description: Not login yet
  */

@@ -6,9 +6,9 @@ import NotFoundError from '../errors/notFoundError.js';
 export const createMaintainSchedule = async (req, res, next) => {
     try {
         // Check if Room exists
-        const room = await Room.findById(req.body.RoomID);
+        const room = await Room.findById(req.body.roomId);
         if (!room) {
-            throw new NotFoundError(`Room with id ${req.body.RoomID} doesn't exist`);
+            throw new NotFoundError(`Room with id ${req.body.RoomId} doesn't exist`);
         }
 
         // Create new maintain schedule
@@ -23,7 +23,7 @@ export const createMaintainSchedule = async (req, res, next) => {
 // Get all MaintainSchedules
 export const getMaintainSchedules = async (req, res, next) => {
     try {
-        const schedules = await MaintainSchedule.find().populate('RoomID');
+        const schedules = await MaintainSchedule.find().populate('roomId');
         res.status(200).json(schedules);
     } catch (error) {
         next(error);
@@ -33,7 +33,7 @@ export const getMaintainSchedules = async (req, res, next) => {
 // Get a single MaintainSchedule by ID
 export const getMaintainScheduleById = async (req, res, next) => {
     try {
-        const schedule = await MaintainSchedule.findById(req.params.id).populate('RoomID');
+        const schedule = await MaintainSchedule.findById(req.params.id).populate('roomId');
         if (!schedule) {
             throw new NotFoundError(`MaintainSchedule with id ${req.params.id} doesn't exist`);
         }
@@ -47,9 +47,9 @@ export const getMaintainScheduleById = async (req, res, next) => {
 export const updateMaintainSchedule = async (req, res, next) => {
     try {
         // Check if Room exists
-        const room = await Room.findById(req.body.RoomID);
+        const room = await Room.findById(req.body.roomId);
         if (!room) {
-            throw new NotFoundError(`Room with id ${req.body.RoomID} doesn't exist`);
+            throw new NotFoundError(`Room with id ${req.body.roomId} doesn't exist`);
         }
 
         // Update the maintain schedule

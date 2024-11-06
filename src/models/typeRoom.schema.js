@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { Schema } from 'mongoose';
 
 const typeRoomSchema = new mongoose.Schema({
     description: {
@@ -12,6 +13,16 @@ const typeRoomSchema = new mongoose.Schema({
     limit: {
         type: Number,
         required: true
+    },
+    price: {
+        type: new Schema({
+            hourlyRate: Number,
+            dailyRate: Number
+        }, { _id: false }),
+        required: true
+    },
+    images: {
+        type: [String]
     }
 });
 
