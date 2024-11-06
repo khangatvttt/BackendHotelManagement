@@ -61,13 +61,33 @@ export const createRoom = async (req, res, next) => {
 export const getRooms = async (req, res, next) => {
     try {
         let page = parseInt(req.query.page) || 1;
-        if(page<1){
-            page=1;
-        }
+        if (page < 1) page = 1;
+
         const limit = 6;
-        const skip = (page - 1)*limit;
-        const totalRooms = await Room.countDocuments();                           
-        const rooms = await Room.find().populate('TypeId').skip(skip).limit(limit);
+        const skip = (page - 1) * limit;
+
+        // Use MongoDB aggregation to group rooms by `typeId`
+        const roomsAggregation = await Room.aggregate([
+            {
+                $group: {
+                    _id: "$typeId", // Group by typeId
+                    room: { $first: "$$ROOT" } // Get the first room for each typeId
+                }
+            },
+            {
+                $replaceRoot: { newRoot: "$room" } // Replace the root with the room document
+            },
+            { $skip: skip },
+            { $limit: limit }
+        ]);
+
+        // Get the total count of unique `typeId` groups
+        const uniqueTypeIds = await Room.distinct("typeId");
+        const totalRooms = uniqueTypeIds.length;
+
+        // Populate `typeId` field after aggregation
+        const rooms = await Room.populate(roomsAggregation, { path: "typeId" });
+
         res.status(200).json({
             rooms,
             currentPage: page,
@@ -129,14 +149,13 @@ export const deleteRoom = async (req, res, next) => {
     }
 };
 
-// Get all avaiable rooms
+
+// Get all available rooms
 export const getAvailableRooms = async (req, res, next) => {
     try {
-        const { checkInTime, checkOutTime, typeName } = req.body;
+        const { checkInTime, checkOutTime, typeName } = req.query;
         let page = parseInt(req.query.page) || 1;
-        if(page<1){
-            page=1;
-        }
+        if (page < 1) page = 1;
         const limit = 6;
 
         if (!checkInTime || !checkOutTime) {
@@ -144,41 +163,54 @@ export const getAvailableRooms = async (req, res, next) => {
         }
 
         const checkInDate = new Date(checkInTime);
-        checkInDate.setHours(0, 0, 0, 0);
-
         const checkOutDate = new Date(checkOutTime);
-        checkOutDate.setHours(23, 59, 59, 999);
 
-        let query = {
-            _id: {
-                $nin: await Booking.distinct('RoomID', {
-                    $or: [
-                        {
-                            CheckInTime: { $lt: checkOutDate },
-                            CheckOutTime: { $gt: checkInDate }
-                        }
-                    ]
-                })
-            }
+        const bufferDate = new Date(checkInDate);
+        bufferDate.setHours(bufferDate.getHours() - 2);
+
+        const unavailableRoomIds = await Booking.distinct('roomIds', {
+            $or: [
+                {
+                    checkInTime: { $lt: checkOutDate },
+                    checkOutTime: { $gt: bufferDate }
+                }
+            ]
+        });
+
+        let matchQuery = {
+            _id: { $nin: unavailableRoomIds }
         };
 
         if (typeName) {
-            const typeRoom = await TypeRoom.findOne({ Typename: typeName });
+            const typeRoom = await TypeRoom.findOne({ typename: typeName });
             if (!typeRoom) {
                 return res.status(404).json({ message: "TypeRoom not found" });
             }
-            query.TypeId = typeRoom._id;
+            matchQuery.typeId = typeRoom._id;
         }
-        const skip = (page - 1)*limit;
 
-        const availableRooms = await Room.find(query)
-                                        .skip(skip)
-                                        .limit(limit);
-        const totalRooms = await Room.countDocuments(query);                           
+        const roomsAggregation = await Room.aggregate([
+            { $match: matchQuery },
+            {
+                $group: {
+                    _id: "$typeId", 
+                    room: { $first: "$$ROOT" } 
+                }
+            },
+            { $replaceRoot: { newRoot: "$room" } },
+            { $skip: (page - 1) * limit },
+            { $limit: limit }
+        ]);
+
+        const uniqueTypeIds = await Room.distinct("typeId", matchQuery);
+        const totalRooms = uniqueTypeIds.length;
+
+        const availableRooms = await Room.populate(roomsAggregation, { path: "typeId" });
+
         res.status(200).json({
             availableRooms,
             currentPage: page,
-            totalPage: Math.ceil(totalRooms / limit),
+            totalPages: Math.ceil(totalRooms / limit),
             totalRooms
         });
     } catch (error) {
@@ -186,28 +218,96 @@ export const getAvailableRooms = async (req, res, next) => {
     }
 };
 
+//Get available and unavailable dates of room type
+export const getRoomTypeAvailability = async (req, res, next) => {
+    const { typeId, startDate, endDate } = req.query;
+
+    if (!typeId || !startDate || !endDate) {
+        return res.status(400).json({ error: 'Missing required query parameters' });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(typeId)) {
+        return res.status(400).json({ error: 'Invalid typeId format' });
+    }
+
+    try {
+        const rooms = await Room.find({ typeId: new mongoose.Types.ObjectId(typeId) });
+
+        if (rooms.length === 0) {
+            return res.status(404).json({ availableDates: [], notAvailableDates: [] });
+        }
+
+        const roomIds = rooms.map(room => room._id);
+        const bookings = await Booking.find({
+            roomIds: { $in: roomIds },
+            $or: [
+                { checkInTime: { $lt: new Date(endDate), $gte: new Date(startDate) } },
+                { checkOutTime: { $lte: new Date(endDate), $gt: new Date(startDate) } },
+                { checkInTime: { $lte: new Date(startDate) }, checkOutTime: { $gte: new Date(endDate) } }
+            ]
+        });
+
+        const notAvailableDates = new Set();
+        bookings.forEach(booking => {
+            let currentDate = new Date(booking.checkInTime);
+            while (currentDate <= booking.checkOutTime) {
+                const dateString = currentDate.toISOString().split('T')[0];
+                notAvailableDates.add(dateString);
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+        });
+
+        const availableDates = [];
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+
+        const filteredNotAvailableDates = Array.from(notAvailableDates).filter(date => {
+            const currentDate = new Date(date);
+            return currentDate >= start && currentDate <= end;
+        });
+
+        let currentDate = new Date(startDate);
+        while (currentDate <= end) {
+            const dateString = currentDate.toISOString().split('T')[0];
+            if (!notAvailableDates.has(dateString)) {
+                availableDates.push(dateString);
+            }
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        return res.status(200).json({
+            availableDates,
+            notAvailableDates: filteredNotAvailableDates
+        });
+    } catch (error) {
+        console.error('Error fetching room type availability:', error);
+        next(error);
+    }
+};
+
+
 // Get rating for top 4 
-export const getTopRatedRoom = async (req, res, next) =>{
+export const getTopRatedRoom = async (req, res, next) => {
     try {
         const topRatedRooms = await Booking.aggregate([
             {
-                $unwind:'$RoomID'
+                $unwind: '$RoomID'
             },
             {
-                $group:{
+                $group: {
                     _id: '$RoomID',
-                    avgRating:{$avg: '$Rating'}
+                    avgRating: { $avg: '$Rating' }
                 }
             },
             {
-                $sort: {avgRating: -1}
+                $sort: { avgRating: -1 }
             },
             {
                 $limit: 4
             }
         ]);
-        const rooms= await Room.find({
-            _id: {$in: topRatedRooms.map(room => mongoose.Types.ObjectId(room._id))}
+        const rooms = await Room.find({
+            _id: { $in: topRatedRooms.map(room => mongoose.Types.ObjectId(room._id)) }
         });
 
         res.status(200).json(rooms);

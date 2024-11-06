@@ -6,7 +6,8 @@ import {
     updateRoom,
     deleteRoom,
     getAvailableRooms,
-    getTopRatedRoom
+    getTopRatedRoom,
+    getRoomTypeAvailability
 } from '../controllers/roomController.js';
 import multer from 'multer';
 const upload = multer({ storage: multer.memoryStorage() });
@@ -18,6 +19,9 @@ router.post('/',upload.array('images', 10), createRoom);
 
 // Retrieve all Rooms
 router.get('/', getRooms);
+
+// Retrieve date availability and not availability based on typeRoom
+router.get('/room-availability', getRoomTypeAvailability)
 
 // Retrieve available rooms based on CheckInTime, CheckOutTime and TypeName
 router.get('/available', getAvailableRooms);
