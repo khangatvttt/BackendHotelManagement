@@ -12,6 +12,7 @@ import maintainScheduleRoutes from './src/routes/maintainScheduleRoutes.js'
 import overOccupancyChargeRoutes from './src/routes/overOccupancyChargeRoutes.js'
 import shiftRoutes from './src/routes/shiftRoutes.js'
 import authRoutes from './src/routes/authRoutes.js'
+import scheduleRoutes from './src/routes/scheduleRoute.js'
 import { errorHandler } from './src/errors/errorHandler.js';
 import dotenv from 'dotenv';
 import cors from 'cors'
@@ -70,6 +71,7 @@ app.use('/api/maintain-schedules', authorizeRoles(ROLES.ADMIN, ROLES.STAFF), mai
 app.use('/api/over-occupancy-charges', authorizeRoles(ROLES.ADMIN), overOccupancyChargeRoutes)
 app.use('/api/ratings', ratingRoutes)
 app.use('/api/shifts', authorizeRoles(ROLES.ADMIN, ROLES.STAFF), shiftRoutes)
+app.use('/api/schedules', authorizeRoles(ROLES.ADMIN, ROLES.STAFF), scheduleRoutes)
 
 
 

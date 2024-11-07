@@ -90,6 +90,9 @@ router.post('/login', login);
  *               phoneNumber:
  *                 type: string
  *                 example: "0231233999"
+ *               role:
+ *                 type: enum ['Customer','OnSiteCustomer','Staff','Admin']
+ *                 example: "Customer"
  *     responses:
  *       201:
  *         description: User created successfully
