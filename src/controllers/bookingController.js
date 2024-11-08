@@ -247,6 +247,8 @@ export const getBookings = async (req, res, next) => {
             query.checkOutTime = { $lte: checkOutTime };
         }
 
+        checkPermisson(req.user, userId);
+
         if (size > 10) {
             size = 10
         };

@@ -209,7 +209,7 @@ router.post('/', createBooking);
  *       400:
  *         description: Bad request
  */
-router.get('/', authorizeRoles(ROLES.ADMIN, ROLES.STAFF), getBookings);
+router.get('/', getBookings);
 
 /**
  * @swagger

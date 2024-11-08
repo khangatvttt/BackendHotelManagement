@@ -44,8 +44,13 @@ const handleTokenRefresh = async (req, res, next, refreshToken) => {
     const decodedRefreshToken = jwtServices.verifyToken(refreshToken);
 
     // Find user and validate the refresh token stored in DB
-    const user = await User.findById(decodedRefreshToken.user_id).select('+refreshToken');;
-    if (!user || user.refreshToken != refreshToken) {
+    // const user = await User.findById(decodedRefreshToken.user_id).select('+refreshToken');
+    // if (!user || user.refreshToken != refreshToken) {
+    //   throw new UnauthorizedError('Invalid refresh token. Please login again.');
+    // }
+
+    const user = await User.findOne({refreshToken: refreshToken}).select('+refreshToken');
+    if (!user){
       throw new UnauthorizedError('Invalid refresh token. Please login again.');
     }
 
@@ -67,7 +72,7 @@ const handleTokenRefresh = async (req, res, next, refreshToken) => {
     res.cookie('access_token', newAccessToken, {
       httpOnly: true,
       sameSite: 'Strict',
-      maxAge: new Date(expiredTime * 1000),
+      expires: new Date(expiredTime * 1000),
     });
 
     res.cookie('refresh_token', newRefreshToken, {
@@ -85,6 +90,7 @@ const handleTokenRefresh = async (req, res, next, refreshToken) => {
     if (err.name === 'TokenExpiredError') {
       return next(new UnauthorizedError('Refresh token expired. Please login again.'));
     } else {
+      console.log(err)
       return next(new UnauthorizedError(err));
     }
   }
