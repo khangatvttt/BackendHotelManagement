@@ -43,8 +43,8 @@ const userSchema = new Schema({
     },
     birthDate: {
         type: Date,
-        required: true
-
+        required: true,
+        get: toDate
     },
     status: {
         type: Boolean,
@@ -64,6 +64,9 @@ const userSchema = new Schema({
         select: false
     }
 }, options);
+
+userSchema.set('toJSON', { getters: true });
+
 
 //Hash password before save to database
 userSchema.pre("save",function(next){
@@ -107,7 +110,9 @@ export const OnSiteCustomer = User.discriminator(ROLES.ONSITE_CUSTOMER, new Sche
     point: { type: Number, default: 0 }
 }));
 
-
+function toDate(dateTime){
+    return dateTime ? dateTime.toISOString().split('T')[0] : null;
+}
 
 
 export default { User, Customer, Staff, Admin };

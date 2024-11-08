@@ -77,7 +77,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /vouchers:
+ * /api/vouchers:
  *   post:
  *     summary: Create a new voucher
  *     tags: [Vouchers]
@@ -101,7 +101,7 @@ router.post('/', createVoucher);
 
 /**
  * @swagger
- * /vouchers:
+ * /api/vouchers:
  *   get:
  *     summary: Retrieve a list of all vouchers
  *     tags: [Vouchers]
@@ -121,7 +121,7 @@ router.get('/', getVouchers);
 
 /**
  * @swagger
- * /vouchers/{id}:
+ * /api/vouchers/{id}:
  *   get:
  *     summary: Retrieve a voucher by ID
  *     tags: [Vouchers]
@@ -146,7 +146,7 @@ router.get('/:id', getVoucher);
 
 /**
  * @swagger
- * /vouchers/{id}:
+ * /api/vouchers/{id}:
  *   put:
  *     summary: Update a voucher by ID
  *     tags: [Vouchers]
@@ -179,7 +179,7 @@ router.put('/:id', updateVoucher);
 
 /**
  * @swagger
- * /vouchers/{id}:
+ * /api/vouchers/{id}:
  *   delete:
  *     summary: Delete a voucher by ID
  *     tags: [Vouchers]

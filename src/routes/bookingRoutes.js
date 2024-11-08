@@ -81,7 +81,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /bookings:
+ * /api/bookings:
  *   post:
  *     summary: Create a new booking
  *     tags: [Bookings]
@@ -165,7 +165,7 @@ router.post('/', createBooking);
 
 /**
  * @swagger
- * /bookings:
+ * /api/bookings:
  *   get:
  *     summary: Get all bookings
  *     tags: [Bookings]
@@ -213,7 +213,7 @@ router.get('/', authorizeRoles(ROLES.ADMIN, ROLES.STAFF), getBookings);
 
 /**
  * @swagger
- * /bookings/{id}:
+ * /api/bookings/{id}:
  *   get:
  *     summary: Get a booking by ID
  *     tags: [Bookings]
@@ -238,7 +238,7 @@ router.get('/:id', getBookingById);
 
 /**
  * @swagger
- * /bookings/{id}:
+ * /api/bookings/{id}:
  *   put:
  *     summary: Update a booking by ID
  *     tags: [Bookings]

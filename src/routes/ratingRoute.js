@@ -69,7 +69,7 @@ router.get('/', getAllRatings);
 
 /**
  * @swagger
- * /rating/{id}:
+ * /api/rating/{id}:
  *   get:
  *     summary: Get a rating by ID
  *     tags: [Rating]
@@ -128,7 +128,7 @@ router.put('/:id', updateRating);
 
 /**
  * @swagger
- * /rating/{id}:
+ * /apis/rating/{id}:
  *   delete:
  *     summary: Delete a rating by ID
  *     tags: [Rating]

@@ -85,7 +85,7 @@ const handleTokenRefresh = async (req, res, next, refreshToken) => {
     if (err.name === 'TokenExpiredError') {
       return next(new UnauthorizedError('Refresh token expired. Please login again.'));
     } else {
-      return next(new UnauthorizedError('Invalid refresh token.'));
+      return next(new UnauthorizedError(err));
     }
   }
 };

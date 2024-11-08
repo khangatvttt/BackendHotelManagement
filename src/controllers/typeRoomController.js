@@ -78,9 +78,11 @@ export const getTypeRooms = async (req, res, next) => {
             checkInTime: Joi.string().isoDate().optional(),
             checkOutTime: Joi.string().isoDate().optional(),
             limit: Joi.number().integer().min(1).optional(),
+            page: Joi.number().integer().min(1).required(),
+            size: Joi.number().integer().min(1).required()
         }).and('checkInTime', 'checkOutTime');
 
-        const { error } = querySchema.validate(req.query)
+        const { error } = querySchema.validate(req.query);
         if (error) {
             throw error;
         }
@@ -90,7 +92,7 @@ export const getTypeRooms = async (req, res, next) => {
             query.limit = req.query.limit;
         }
 
-        let bookedRoomIds = [];
+        let bookedRoomIds=[];
         if (req.query.checkInTime && req.query.checkOutTime) {
             const checkInTime = new Date(req.query.checkInTime);
             const checkOutTime = new Date(req.query.checkOutTime);
@@ -113,8 +115,23 @@ export const getTypeRooms = async (req, res, next) => {
             bookedRoomIds = bookedRoomIds.map(room => room.toString())
 
         }
+
+        let {size} = req.query
+        const {page} = req.query
+
+        if (size > 10) {
+            size = 10
+        };
+
+        const totalDocuments = await TypeRoom.countDocuments(query)
+        const totalPages = Math.ceil(totalDocuments / size);
+        if (page > totalPages) {
+            throw new BadRequestError('Excess page limit');
+        }
+        res.setHeader("X-Total-Count", `${totalPages}`);
+
         // Find typeRooms
-        const typeRooms = await TypeRoom.find(query).lean();
+        const typeRooms = await TypeRoom.find(query).limit(size).skip(size*(page-1)).lean();
 
         // Caculate how many room available
         for (const type of typeRooms) {
@@ -156,8 +173,6 @@ export const getTypeRooms = async (req, res, next) => {
             type.rating = rating;
 
         }
-
-
         res.status(200).json(typeRooms);
     } catch (error) {
         next(error);

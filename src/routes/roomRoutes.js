@@ -21,7 +21,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /rooms:
+ * /api/rooms:
  *   post:
  *     summary: Create a new room
  *     tags: [Rooms]
@@ -64,7 +64,7 @@ router.post('/', createRoom);
 
 /**
  * @swagger
- * /rooms:
+ * /api/rooms:
  *   get:
  *     summary: Retrieve all rooms
  *     tags: [Rooms]
@@ -107,7 +107,7 @@ router.get('/rating', getTopRatedRoom);
 
 /**
  * @swagger
- * /rooms/{id}:
+ * /api/rooms/{id}:
  *   get:
  *     summary: Retrieve a room by ID
  *     tags: [Rooms]
@@ -139,7 +139,7 @@ router.get('/:id', getRoomById);
 
 /**
  * @swagger
- * /rooms/{id}:
+ * /api/rooms/{id}:
  *   put:
  *     summary: Update a room by ID
  *     tags: [Rooms]
@@ -189,7 +189,7 @@ router.put('/:id', updateRoom);
 
 /**
  * @swagger
- * /rooms/{id}/unavailableTime:
+ * /api/rooms/{id}/unavailableTime:
  *   get:
  *     summary: Get unavailable booking times for a room
  *     tags: [Rooms]

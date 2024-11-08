@@ -33,6 +33,6 @@ const ratingSchema = new mongoose.Schema({
     },
 });
 
-ratingSchema.index({ bookingId: 1, typeRoomId: 2}, { unique: true })
+ratingSchema.index({ bookingId: 1, typeRoomId: 1}, { unique: true })
 
 export default mongoose.model('Rating', ratingSchema);

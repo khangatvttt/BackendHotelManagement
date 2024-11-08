@@ -10,12 +10,20 @@ const scheduleSchema = new mongoose.Schema({
         type: Date,
         required: true
     },
-    shifts: {
-        type: [mongoose.Schema.Types.ObjectId],
+    shiftId: {
+        type: mongoose.Schema.Types.ObjectId,
         ref: 'Shift',
         required: true
 
+    },
+    status: {
+        type: String,
+        enum: ['Scheduled', 'Completed', 'Cancelled'],
+        default: 'Scheduled'
     }
 });
+
+scheduleSchema.index({ userId: 1, shiftId: 1, workDate: 1}, { unique: true })
+
 
 export default mongoose.model('Schedule', scheduleSchema);
