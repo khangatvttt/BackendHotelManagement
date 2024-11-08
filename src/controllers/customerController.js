@@ -2,10 +2,28 @@ import ForbiddenError from '../errors/forbiddenError.js';
 import { Customer, OnSiteCustomer, User } from '../models/user.schema.js';
 import { ROLES } from '../models/roles.js';
 import NotFoundError from '../errors/badRequestError.js';
+import BadRequestError from '../errors/badRequestError.js';
+import Joi from 'joi';
 
 export const getAllCustomers = async (req, res, next) => {
   try {
-    const { phone, email, fullName, gender, status } = req.query;
+    const querySchema = Joi.object({
+      phone: Joi.string().optional(),
+      email: Joi.string().email().optional(),
+      fullName: Joi.string().optional(),
+      gender: Joi.string().valid('Male', 'Female').optional(),
+      status: Joi.boolean().optional(),
+      page: Joi.number().integer().min(1).required(),
+      size: Joi.number().integer().min(1).required()
+    })
+
+    const { error } = querySchema.validate(req.query)
+    if (error) {
+      throw error;
+    }
+
+    const { phone, email, fullName, gender, status, page } = req.query;
+    let { size } = req.query
 
     const query = {};
     if (phone) query.phoneNumber = phone;
@@ -16,7 +34,18 @@ export const getAllCustomers = async (req, res, next) => {
 
     query.role = { $in: [ROLES.CUSTOMER, ROLES.ONSITE_CUSTOMER] }
 
-    const users = await User.find(query);
+    if (size > 10) {
+      size = 10
+    };
+
+    const totalDocuments = await User.countDocuments(query)
+    const totalPages = Math.ceil(totalDocuments / size);
+    if (page > totalPages) {
+      throw new BadRequestError('Excess page limit');
+    }
+    res.setHeader("X-Total-Count", `${totalPages}`);
+
+    const users = await User.find(query).limit(size).skip(size * (page - 1));
     res.status(200).json(users);
   } catch (error) {
     next(error);
@@ -66,7 +95,7 @@ export const updateCustomer = async (req, res, next) => {
 
 
     if (!updatedUser) {
-      const updatedOnsiteCustomer = await OnSiteCustomer.findOneAndUpdate({_id: id}, updates, {
+      const updatedOnsiteCustomer = await OnSiteCustomer.findOneAndUpdate({ _id: id }, updates, {
         new: true,
         runValidators: true,
       });

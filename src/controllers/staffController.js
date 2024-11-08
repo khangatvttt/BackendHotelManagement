@@ -2,10 +2,27 @@ import ForbiddenError from '../errors/forbiddenError.js';
 import { Staff, User } from '../models/user.schema.js';
 import { ROLES } from '../models/roles.js';
 import NotFoundError from '../errors/badRequestError.js';
+import Joi from 'joi'
 
 export const getAllStaffs = async (req, res, next) => {
   try {
-    const { phone, email, fullName, gender, status } = req.query;
+    const querySchema = Joi.object({
+      phone: Joi.string().optional(),
+      email: Joi.string().email().optional(),
+      fullName: Joi.string().optional(),
+      gender: Joi.string().valid('Male', 'Female').optional(),
+      status: Joi.boolean().optional(),
+      page: Joi.number().integer().min(1).required(),
+      size: Joi.number().integer().min(1).required()
+    })
+
+    const { error } = querySchema.validate(req.query)
+    if (error) {
+      throw error;
+    }
+
+    const { phone, email, fullName, gender, status, page } = req.query;
+    let {size} = req.query
 
     const query = {};
     if (phone) query.phoneNumber = phone;
@@ -14,7 +31,19 @@ export const getAllStaffs = async (req, res, next) => {
     if (gender) query.gender = gender;
     if (status) query.status = status === 'true';
 
-    const users = await Staff.find(query);
+    if (size > 10) {
+      size = 10
+    };
+
+    const totalDocuments = await Staff.countDocuments(query)
+    const totalPages = Math.ceil(totalDocuments / size);
+    if (page > totalPages) {
+      throw new BadRequestError('Excess page limit');
+    }
+    res.setHeader("X-Total-Count", `${totalPages}`);
+
+
+    const users = await Staff.find(query).limit(size).skip(size * (page - 1));
     res.status(200).json(users);
   } catch (error) {
     next(error);
@@ -44,7 +73,7 @@ export const updateStaff = async (req, res, next) => {
 
     const editableFields = ['password', 'fullName', 'gender', 'birthDate', 'phoneNumber'];
 
-    if (req.user.role == ROLES.ADMIN){
+    if (req.user.role == ROLES.ADMIN) {
       editableFields.push('salary');
     }
 

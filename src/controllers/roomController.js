@@ -2,7 +2,7 @@ import Room from '../models/room.schema.js';
 import TypeRoom from '../models/typeRoom.schema.js';
 import NotFoundError from '../errors/notFoundError.js'
 import Booking from '../models/booking.schema.js'
-
+import Joi from 'joi';
 // Create a new Room
 export const createRoom = async (req, res, next) => {
     try {
@@ -24,12 +24,39 @@ export const createRoom = async (req, res, next) => {
 // Get all Rooms
 export const getRooms = async (req, res, next) => {
     try {
-        const {typeId, status} = req.query
+
+        const querySchema = Joi.object({
+            typeId: Joi.string().optional(),
+            status: Joi.boolean().optional(),
+            page: Joi.number().integer().min(1).required(),
+            size: Joi.number().integer().min(1).required()
+          })
+      
+          const { error } = querySchema.validate(req.query)
+          if (error) {
+            throw error;
+          }
+
+        const {typeId, status, page} = req.query
+        let {size} = req.query
+
         const query = {};
         if (typeId) query.typeId = typeId;
         if (status) query.status = status === 'true';
+
+        if (size > 10) {
+            size = 10
+          };
+      
+          const totalDocuments = await Room.countDocuments(query)
+          const totalPages = Math.ceil(totalDocuments / size);
+          if (page > totalPages) {
+            throw new BadRequestError('Excess page limit');
+          }
+          res.setHeader("X-Total-Count", `${totalPages}`);
+      
  
-        const rooms = await Room.find(query).populate({
+        const rooms = await Room.find(query).limit(size).skip(size * (page-1)).populate({
             path: 'typeId',
             select: 'images typename'
         });

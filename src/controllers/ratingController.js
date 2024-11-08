@@ -4,30 +4,31 @@ import Rating from '../models/rating.schema.js';
 import Booking from '../models/booking.schema.js'
 import { ROLES } from '../models/roles.js';
 import ForbiddenError from '../errors/forbiddenError.js';
+import Joi from 'joi';
 
 export const createRating = async (req, res, next) => {
     try {
         const booking = await Booking.findById(req.body.bookingId).populate({
             path: 'roomIds',
-            select: 'typeId' 
+            select: 'typeId'
         });
         checkPermisson(req.user, booking.userId)
-        
-        if (!booking){
+
+        if (!booking) {
             throw new NotFoundError(`Booking with id ${req.body.bookingId} doesn't exist`)
         }
 
-        const typeRooms = booking.roomIds.map(room=>room.typeId.toString())
-        if (!typeRooms.includes(req.body.typeRoomId)){
+        const typeRooms = booking.roomIds.map(room => room.typeId.toString())
+        if (!typeRooms.includes(req.body.typeRoomId)) {
             throw new BadRequestError(`Booking with id ${req.body.bookingId} doesn't have typeId ${req.body.typeRoomId}`)
         }
-        
+
         const rating = new Rating(req.body);
         await rating.save();
         res.status(201).send(rating);
     } catch (error) {
         // Duplicate error of mongoose
-        if (error.code === 11000){
+        if (error.code === 11000) {
             return next(new BadRequestError('This typeRoom in this booking has been rated'))
         }
         next(error);
@@ -36,14 +37,40 @@ export const createRating = async (req, res, next) => {
 
 export const getAllRatings = async (req, res, next) => {
     try {
-        const { score, typeRoomId, bookingId } = req.query;
+        const { score, typeRoomId, bookingId, page } = req.query;
+        let { size } = req.query
+
+        const querySchema = Joi.object({
+            typeRoomId: Joi.string().optional(),
+            score: Joi.number().optional(),
+            bookingId: Joi.string().optional(),
+            page: Joi.number().integer().min(1).required(),
+            size: Joi.number().integer().min(1).required()
+        })
+
+        const { error } = querySchema.validate(req.query)
+        if (error) {
+            throw error;
+        }
 
         const query = {};
         if (score) query.score = score;
         if (typeRoomId) query.typeRoomId = typeRoomId;
         if (bookingId) query.bookingId = bookingId;
 
-        const ratings = await Rating.find(query)
+        if (size > 10) {
+            size = 10
+        };
+
+        const totalDocuments = await Rating.countDocuments(query)
+        const totalPages = Math.ceil(totalDocuments / size);
+        if (page > totalPages) {
+            throw new BadRequestError('Excess page limit');
+        }
+        res.setHeader("X-Total-Count", `${totalPages}`);
+
+
+        const ratings = await Rating.find(query).limit(size).skip(size * (page - 1))
             .populate({
                 path: 'bookingId',
                 select: 'userId'
@@ -58,7 +85,7 @@ export const getAllRatings = async (req, res, next) => {
 export const getRatingById = async (req, res, next) => {
     try {
         const rating = await Rating.findById(req.params.id);
-        if (!rating){
+        if (!rating) {
             throw new NotFoundError(`Rating with id ${req.params.id} doesn't exist`);
         }
         res.status(200).json(rating);
@@ -75,16 +102,16 @@ export const updateRating = async (req, res, next) => {
         const rating = await Rating.findById(req.params.id).populate({
             path: 'bookingId'
         })
-        if (!rating){
+        if (!rating) {
             throw new NotFoundError(`Rating with id ${req.params.id} doesn't exist`);
         }
 
         checkPermisson(req.user, rating.bookingId.userId);
 
-        if (score){
+        if (score) {
             rating.score = score;
         }
-        if (feedback){
+        if (feedback) {
             rating.feedback = feedback;
         }
         const updatedRating = await rating.save();
@@ -98,7 +125,7 @@ export const updateRating = async (req, res, next) => {
 export const deleteRating = async (req, res, next) => {
     try {
         const rating = await Rating.findById(req.params.id).populate('bookingId')
-        if (!rating){
+        if (!rating) {
             NotFoundError(`Rating with id ${req.params.id} doesn't exist`);
         }
 

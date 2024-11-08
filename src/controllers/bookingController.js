@@ -219,7 +219,24 @@ export const createBooking = async (req, res, next) => {
 // Get all Bookings
 export const getBookings = async (req, res, next) => {
     try {
-        const { checkInTime, checkOutTime, userId, roomId, currentStatus } = req.query;
+        const querySchema = Joi.object({
+            checkInTime: Joi.date().optional(),
+            checkOutTime: Joi.date().optional(),
+            userId: Joi.string().optional(),
+            roomId: Joi.string().optional(),
+            currentStatus: Joi.string().optional(),
+            page: Joi.number().integer().min(1).required(),
+            size: Joi.number().integer().min(1).required()
+        })
+
+        const { error } = querySchema.validate(req.query)
+
+        if (error) {
+            throw error;
+        }
+
+        const { checkInTime, checkOutTime, userId, roomId, currentStatus, page } = req.query;
+        let { size } = req.query;
 
         const query = {};
         if (userId) query.userId = userId;
@@ -230,7 +247,19 @@ export const getBookings = async (req, res, next) => {
             query.checkOutTime = { $lte: checkOutTime };
         }
 
-        const bookings = await Booking.find(query)
+        if (size > 10) {
+            size = 10
+        };
+
+        const totalDocuments = await Booking.countDocuments(query)
+        const totalPages = Math.ceil(totalDocuments / size);
+        if (page > totalPages) {
+            throw new BadRequestError('Excess page limit');
+        }
+        res.setHeader("X-Total-Count", `${totalPages}`);
+
+
+        const bookings = await Booking.find(query).limit(size).skip(size * (page-1))
             .populate('userId')
             .populate('roomIds');
         res.status(200).json(bookings);

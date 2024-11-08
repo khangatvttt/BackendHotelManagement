@@ -121,7 +121,7 @@ router.put('/:id', updateOverOccupancyCharge);
 
 /**
  * @swagger
- * /over-occupancy-charges/{id}:
+ * /api/over-occupancy-charges/{id}:
  *   delete:
  *     summary: Delete an over occupancy charge by ID
  *     tags: [OverOccupancyCharge]

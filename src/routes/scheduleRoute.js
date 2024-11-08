@@ -18,7 +18,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /schedules:
+ * /api/schedules:
  *   post:
  *     summary: Create a new schedule
  *     tags: [Schedules]
@@ -55,7 +55,7 @@ router.post('/', createSchedule);
 
 /**
  * @swagger
- * /schedules:
+ * /api/schedules:
  *   get:
  *     summary: Get all schedules
  *     tags: [Schedules]
@@ -136,7 +136,7 @@ router.get('/', getAllSchedules);
 
 /**
  * @swagger
- * /schedules/{id}:
+ * /api/schedules/{id}:
  *   get:
  *     summary: Get a schedule by ID
  *     tags: [Schedules]
@@ -157,7 +157,7 @@ router.get('/:id', getScheduleById);
 
 /**
  * @swagger
- * /schedules/{id}:
+ * /api/schedules/{id}:
  *   put:
  *     summary: Update a schedule status by ID
  *     tags: [Schedules]
@@ -191,7 +191,7 @@ router.put('/:id', updateSchedule);
 
 /**
  * @swagger
- * /schedules/{id}:
+ * /api/schedules/{id}:
  *   delete:
  *     summary: Delete a schedule by ID
  *     tags: [Schedules]
