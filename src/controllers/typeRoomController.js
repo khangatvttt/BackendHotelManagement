@@ -90,28 +90,32 @@ export const getTypeRooms = async (req, res, next) => {
             query.limit = req.query.limit;
         }
 
-        const checkInTime = new Date(req.query.checkInTime);
-        const checkOutTime = new Date(req.query.checkOutTime);
-        // Two hour after check out for room services
-        const adjustedCheckOut = new Date(checkOutTime.getTime() + 2 * 60 * 60 * 1000); // 2 hours after check-out
+        let bookedRoomIds = [];
+        if (req.query.checkInTime && req.query.checkOutTime) {
+            const checkInTime = new Date(req.query.checkInTime);
+            const checkOutTime = new Date(req.query.checkOutTime);
+            // Two hour after check out for room services
+            const adjustedCheckOut = new Date(checkOutTime.getTime() + 2 * 60 * 60 * 1000); // 2 hours after check-out
 
-        if (checkInTime > checkOutTime || checkInTime.getTime() < Date.now()) {
-            throw new BadRequestError("checkInTime must be before checkOutTime and be a date in future");
+            if (checkInTime > checkOutTime || checkInTime.getTime() < Date.now()) {
+                throw new BadRequestError("checkInTime must be before checkOutTime and be a date in future");
+            }
+
+            // Rooms that are booked in selected time
+            const conflictBookings = await Booking.find({
+                currentStatus: 'Reserved',
+                $or: [
+                    { checkInTime: { $lt: adjustedCheckOut }, checkOutTime: { $gt: checkInTime } }
+                ]
+            }).select('roomIds');
+
+            bookedRoomIds = conflictBookings.flatMap(booking => booking.roomIds);
+            bookedRoomIds = bookedRoomIds.map(room => room.toString())
+
         }
-
         // Find typeRooms
         const typeRooms = await TypeRoom.find(query).lean();
 
-        // Rooms that are booked in selected time
-        const conflictBookings = await Booking.find({
-            currentStatus: 'Reserved',
-            $or: [
-                { checkInTime: { $lt: adjustedCheckOut }, checkOutTime: { $gt: checkInTime } }
-            ]
-        }).select('roomIds');
-
-        let bookedRoomIds = conflictBookings.flatMap(booking => booking.roomIds);
-        bookedRoomIds = bookedRoomIds.map(room => room.toString())
         // Caculate how many room available
         for (const type of typeRooms) {
             const roomsOfType = await Room.find({
@@ -134,17 +138,17 @@ export const getTypeRooms = async (req, res, next) => {
                 {
                     $group: {
                         _id: "$typeRoomId",
-                        averageScore: { $avg: "$score" }, 
+                        averageScore: { $avg: "$score" },
                         ratingCount: { $sum: 1 }
                     }
                 }
             ]);
 
-            if (result.length>0){
+            if (result.length > 0) {
                 rating.averageScore = Math.round(result[0].averageScore * 10) / 10;
                 rating.totalRating = result[0].ratingCount;
             }
-            else{
+            else {
                 rating.averageScore = null;
                 rating.totalRating = 0;
             }

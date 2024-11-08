@@ -4,8 +4,7 @@ import {
     getRooms,
     getRoomById,
     updateRoom,
-    getBookedTimeOfRoom
-    deleteRoom,
+    getBookedTimeOfRoom,
     getAvailableRooms,
     getTopRatedRoom,
     getRoomTypeAvailability

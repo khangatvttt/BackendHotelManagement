@@ -2,7 +2,6 @@ import Room from '../models/room.schema.js';
 import TypeRoom from '../models/typeRoom.schema.js';
 import Booking from '../models/booking.schema.js';
 import NotFoundError from '../errors/notFoundError.js'
-import Booking from '../models/booking.schema.js'
 import mongoose from 'mongoose';
 import bucket from '../config/firebaseConfig.js'
 import crypto from 'crypto'
@@ -64,7 +63,7 @@ export const getRooms = async (req, res, next) => {
         const totalRooms = uniqueTypeIds.length;
 
         // Populate `typeId` field after aggregation
-        const rooms = await Room.populate(roomsAggregation, { path: "typeId" });
+        rooms = await Room.populate(roomsAggregation, { path: "typeId" });
 
         res.status(200).json({
             rooms,
