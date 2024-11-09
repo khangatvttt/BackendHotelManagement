@@ -46,9 +46,26 @@ const router = express.Router();
  *         schema:
  *           type: boolean
  *         description: Filter by account status (true for active, false for inactive).
+ *       - in: query
+ *         name: size
+ *         description: The number of elementals is in one page
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: page
+ *         description: The page number that want to return
+ *         required: true
+ *         schema:
+ *           type: integer
  *     responses:
  *       200:
  *         description: A list of staffs
+ *         headers:
+ *           X-Total-Count:
+ *             description: A total of page base on Size
+ *             schema:
+ *               type: string
  *         content:
  *           application/json:
  *             schema:

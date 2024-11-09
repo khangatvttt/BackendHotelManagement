@@ -73,6 +73,10 @@ export const getAllRatings = async (req, res, next) => {
         const ratings = await Rating.find(query).limit(size).skip(size * (page - 1))
             .populate({
                 path: 'bookingId',
+                populate: {
+                    path: 'userId',  
+                    select: 'fullName'
+                },
                 select: 'userId'
             });
         res.status(200).json(ratings);

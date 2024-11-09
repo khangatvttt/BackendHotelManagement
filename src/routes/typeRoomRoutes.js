@@ -115,10 +115,43 @@ router.post('/', upload.array('images', parseInt(process.env.MAX_IMAGES)), creat
  * /api/typerooms:
  *   get:
  *     summary: Retrieve all TypeRooms
+ *     parameters:
+ *       - in: query
+ *         name: checkInTime
+ *         schema:
+ *           type: Date
+ *         description: Caculate available rooms for each type by checkInTime and checkOutTime (if use, checkOutTime must be included)
+ *       - in: query
+ *         name: checkOutTime
+ *         schema:
+ *           type: Date
+ *         description: Caculate available rooms for each type by checkInTime and checkOutTime (if use, checkInTime must be included)
+ *       - in: query
+ *         name: limit
+ *         description: Filter by limit of the type room
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: size
+ *         description: The number of elementals is in one page
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: page
+ *         description: The page number that want to return
+ *         required: true
+ *         schema:
+ *           type: integer
  *     tags: [TypeRoom]
  *     responses:
  *       200:
  *         description: A list of TypeRooms
+ *         headers:
+ *           X-Total-Count:
+ *             description: A total of page base on Size
+ *             schema:
+ *               type: string
  *         content:
  *           application/json:
  *             schema:

@@ -59,9 +59,47 @@ router.post('/', createRating);
  *   get:
  *     summary: Get all ratings
  *     tags: [Rating]
+ *     parameters:
+ *       - in: query
+ *         name: size
+ *         description: The number of elementals is in one page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: page
+ *         description: The page number that want to return
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: score
+ *         description: Get ratings with this score, min 1, max 5
+ *         schema:
+ *           type: integer/half-interger
+ *       - in: query
+ *         name: page
+ *         description: The page number that want to return
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: typeId
+ *         description: Get ratings by type room
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: bookingId
+ *         description: Get ratings by booking
+ *         required: true
+ *         schema:
+ *           type: integer
  *     responses:
  *       200:
  *         description: List of all ratings
+ *         headers:
+ *           X-Total-Count:
+ *             description: A total of page base on Size
+ *             schema:
+ *               type: string
  *       500:
  *         description: Internal server error
  */

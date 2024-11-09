@@ -78,9 +78,26 @@ router.post('/', createRoom);
  *         schema:
  *           type: boolean
  *         description: Filter rooms by status
+ *       - in: query
+ *         name: size
+ *         description: The number of elementals is in one page
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: page
+ *         description: The page number that want to return
+ *         required: true
+ *         schema:
+ *           type: integer
  *     responses:
  *       200:
  *         description: A list of rooms
+ *         headers:
+ *           X-Total-Count:
+ *             description: A total of page base on Size
+ *             schema:
+ *               type: string
  *         content:
  *           application/json:
  *             example:

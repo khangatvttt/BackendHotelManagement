@@ -46,7 +46,7 @@ app.use(cors({
   },
   credentials: true, // Allow cookies to be sent in requests
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE', // Allowed methods
-  allowedHeaders: 'Content-Type,Authorization, X-Total-Count', // Headers that are allowed
+  allowedHeaders: 'Content-Type, Authorization, X-Total-Count', // Headers that are allowed
   exposedHeaders: 'X-Total-Count',
 }));
 
