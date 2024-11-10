@@ -1,5 +1,6 @@
 import Voucher from '../models/voucher.schema.js';
 import NotFoundError from '../errors/notFoundError.js';
+import BadRequestError from '../errors/badRequestError.js';
 
 // Create a new Voucher
 export const createVoucher = async (req, res, next) => {
@@ -16,8 +17,32 @@ export const createVoucher = async (req, res, next) => {
 // Get all Vouchers
 export const getVouchers = async (req, res, next) => {
     try {
-        const Vouchers = await Voucher.find();
-        res.status(200).json(Vouchers);
+        const { available, totalAmount } = req.query;
+        const query = {};
+
+        if (available === 'true') {
+            query.startDate = { $lte: new Date() };
+            query.endDate = { $gt: new Date() };
+        }
+
+        if (totalAmount !== undefined) {
+            const parsedTotalAmount = parseFloat(totalAmount);
+            query.minSpend = { $lt: parsedTotalAmount };
+        }
+
+        const vouchers = await Voucher.find(query).lean();
+
+        const processedVouchers = vouchers.filter(voucher => {
+            // Reach limit or this user is already used it
+            if (voucher.userUsedVoucher.length >= voucher.limit || voucher.userUsedVoucher.includes(req.user.id)) {
+                return false;
+            } else {
+                voucher.remainingUses = voucher.limitUse - voucher.userUsedVoucher.length;
+                return true;
+            }
+        });
+
+        res.status(200).json(processedVouchers);
     } catch (error) {
         next(error);
     }
@@ -26,11 +51,11 @@ export const getVouchers = async (req, res, next) => {
 // Get a single Voucher by ID
 export const getVoucher = async (req, res, next) => {
     try {
-        const Voucher = await Voucher.findById(req.params.id);
-        if (!Voucher) {
+        const voucher = await Voucher.findById(req.params.id);
+        if (!voucher) {
             throw new NotFoundError(`Voucher with id ${req.params.id} doesn't exist`);
         }
-        res.status(200).json(Voucher);
+        res.status(200).json(voucher);
     } catch (error) {
         next(error);
     }
@@ -64,4 +89,20 @@ export const deleteVoucher = async (req, res, next) => {
     } catch (error) {
         next(error);
     }
+};
+
+export const getAvailableVouchers = async (req, res, next) => {
+    try {
+        const availableVouchers = await Voucher.find({
+            startDate: { $lte: Date.now() },
+            endDate: { $gt: Date.now() },
+            minSpend: { $lt: req.query.totalAmount }
+        });
+        res.status(200).json(availableVouchers)
+    }
+    catch (error) {
+        console.log(error)
+        next(error)
+    }
+
 };

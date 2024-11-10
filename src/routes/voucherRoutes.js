@@ -6,6 +6,8 @@ import {
     updateVoucher,
     deleteVoucher
 } from '../controllers/voucherController.js';
+import authorizeRoles from '../middlewares/authorizationMiddleware.js'
+import { ROLES } from '../models/roles.js';
 
 const router = express.Router();
 
@@ -97,7 +99,7 @@ const router = express.Router();
  *       400:
  *         description: Bad request
  */
-router.post('/', createVoucher);
+router.post('/',authorizeRoles(ROLES.ADMIN, ROLES.STAFF), createVoucher);
 
 /**
  * @swagger
@@ -105,6 +107,17 @@ router.post('/', createVoucher);
  *   get:
  *     summary: Retrieve a list of all vouchers
  *     tags: [Vouchers]
+ *     parameters:
+ *       - in: query
+ *         name: available
+ *         schema:
+ *           type: boolean
+ *         description: if true, get all vouchers that can use for now
+ *       - in: totalAmount
+ *         name: available
+ *         schema:
+ *           type: number
+ *         description: filter all vouchers that can use for certain total amount
  *     responses:
  *       200:
  *         description: A list of vouchers
@@ -142,7 +155,7 @@ router.get('/', getVouchers);
  *       404:
  *         description: Voucher not found
  */
-router.get('/:id', getVoucher);
+router.get('/:id', authorizeRoles(ROLES.ADMIN, ROLES.STAFF), getVoucher);
 
 /**
  * @swagger
@@ -175,7 +188,7 @@ router.get('/:id', getVoucher);
  *       400:
  *         description: Bad request
  */
-router.put('/:id', updateVoucher);
+router.put('/:id',authorizeRoles(ROLES.ADMIN, ROLES.STAFF), updateVoucher);
 
 /**
  * @swagger
@@ -196,6 +209,6 @@ router.put('/:id', updateVoucher);
  *       404:
  *         description: Voucher not found
  */
-router.delete('/:id', deleteVoucher);
+router.delete('/:id',authorizeRoles(ROLES.ADMIN, ROLES.STAFF), deleteVoucher);
 
 export default router;

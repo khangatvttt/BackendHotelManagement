@@ -66,7 +66,7 @@ app.use('/api/staffs', authorizeRoles(ROLES.ADMIN, ROLES.STAFF), staffRoutes);
 app.use('/api/type-rooms', typeRoomRoutes);
 app.use('/api/rooms', roomRoutes)
 app.use('/api/bookings', bookingRoutes)
-app.use('/api/vouchers', authorizeRoles(ROLES.ADMIN, ROLES.STAFF), voucherRoutes)
+app.use('/api/vouchers', voucherRoutes)
 app.use('/api/maintain-schedules', authorizeRoles(ROLES.ADMIN, ROLES.STAFF), maintainScheduleRoutes)
 app.use('/api/over-occupancy-charges', overOccupancyChargeRoutes)
 app.use('/api/ratings', ratingRoutes)
