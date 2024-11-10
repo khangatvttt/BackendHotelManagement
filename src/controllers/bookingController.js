@@ -261,7 +261,7 @@ export const getBookings = async (req, res, next) => {
         res.setHeader("X-Total-Count", `${totalPages}`);
 
 
-        const bookings = await Booking.find(query).limit(size).skip(size * (page-1))
+        const bookings = await Booking.find(query).limit(size).skip(size * (page - 1))
             .populate('userId')
             .populate('roomIds');
         res.status(200).json(bookings);
@@ -305,18 +305,25 @@ export const getBookingById = async (req, res, next) => {
 
 // Update a Booking by ID
 export const updateBooking = async (req, res, next) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
     try {
 
         const updateBooking = req.body;
+        // Prevent change userId
+        delete updateBooking['userId']
         const bookingId = req.params.id;
 
-        // Customer can only update the currentStatus field 
+        // Customer can only cancel booking
         if (req.user.role == ROLES.CUSTOMER) {
             const booking = await Booking.findById(bookingId);
             if (!booking) {
                 throw new NotFoundError(`Booking with id ${bookingId} doesn't exist`);
             }
-            booking.currentStatus = req.body.currentStatus;
+            if (booking.userId != req.user.id) {
+                throw new ForbiddenError('You are not allowed to do this action');
+            }
+            booking.currentStatus = req.body.currentStatus == 'Cancelled' ? Cancelled : booking.currentStatus;
             await booking.save();
             res.status(200).send();
         }
@@ -337,8 +344,8 @@ export const updateBooking = async (req, res, next) => {
             }
         }
 
+        const oldBooking = await Booking.findById(bookingId)
         if (updateBooking.checkInTime || updateBooking.checkOutTime) {
-            const oldBooking = await Booking.findById(bookingId)
             // Check checkInTime and checkOutTime
             const requestedCheckIn = updateBooking.checkInTime ? new Date(updateBooking.checkInTime) : oldBooking.checkInTime;
             const requestedCheckOut = updateBooking.checkOutTime ? new Date(updateBooking.checkOutTime) : oldBooking.checkOutTime;
@@ -381,8 +388,20 @@ export const updateBooking = async (req, res, next) => {
         if (!updatedBooking) {
             throw new NotFoundError(`Booking with id ${bookingId} doesn't exist`);
         }
+
+        // Add point for user when sucessfully check-out
+        if (updateBooking.currentStatus=='Left' && oldBooking.currentStatus!='Left'){
+            const user = await User.findById(updatedBooking.userId)
+            //For each 100.000 spent, get 1 point
+            user.point = user.point + Math.floor(updatedBooking.totalAmount/100000)
+            await user.save()
+        }
+        await session.commitTransaction()
+        session.endSession()
         res.status(200).json(updatedBooking);
     } catch (error) {
+        await session.abortTransaction()
+        session.endSession()
         next(error);
     }
 };
