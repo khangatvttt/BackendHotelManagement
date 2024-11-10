@@ -107,71 +107,66 @@ export const updateRoom = async (req, res, next) => {
 };
 
 //Get available and unavailable dates of room type
-// export const getRoomTypeAvailability = async (req, res, next) => {
-//     const { typeId, startDate, endDate } = req.query;
+export const getRoomTypeAvailability = async (req, res, next) => {
+    const { typeId, startDate, endDate } = req.query;
 
-//     if (!typeId || !startDate || !endDate) {
-//         return res.status(400).json({ error: 'Missing required query parameters' });
-//     }
+    if (!typeId || !startDate || !endDate) {
+        return res.status(400).json({ error: 'Missing required query parameters' });
+    }
 
-//     if (!mongoose.Types.ObjectId.isValid(typeId)) {
-//         return res.status(400).json({ error: 'Invalid typeId format' });
-//     }
+    try {
+        const rooms = await Room.find({ typeId });
+        
+        if (!rooms.length) {
+            return res.status(404).json({ availableSlots: [], notAvailableSlots: [] });
+        }
 
-//     try {
-//         const rooms = await Room.find({ typeId: new mongoose.Types.ObjectId(typeId) });
+        const roomIds = rooms.map(room => room._id);
 
-//         if (rooms.length === 0) {
-//             return res.status(404).json({ availableDates: [], notAvailableDates: [] });
-//         }
+        const bookings = await Booking.find({
+            roomId: { $in: roomIds },
+            $or: [
+                { checkInTime: { $lt: new Date(endDate), $gte: new Date(startDate) } },
+                { checkOutTime: { $lte: new Date(endDate), $gt: new Date(startDate) } },
+                { checkInTime: { $lte: new Date(startDate) }, checkOutTime: { $gte: new Date(endDate) } }
+            ]
+        });
 
-//         const roomIds = rooms.map(room => room._id);
-//         const bookings = await Booking.find({
-//             roomIds: { $in: roomIds },
-//             $or: [
-//                 { checkInTime: { $lt: new Date(endDate), $gte: new Date(startDate) } },
-//                 { checkOutTime: { $lte: new Date(endDate), $gt: new Date(startDate) } },
-//                 { checkInTime: { $lte: new Date(startDate) }, checkOutTime: { $gte: new Date(endDate) } }
-//             ]
-//         });
+        const notAvailableSlots = [];
+        bookings.forEach(booking => {
+            let currentDateTime = new Date(booking.checkInTime);
+            const adjustedCheckOutTime = new Date(booking.checkOutTime);
+            adjustedCheckOutTime.setHours(adjustedCheckOutTime.getHours() + 2);
 
-//         const notAvailableDates = new Set();
-//         bookings.forEach(booking => {
-//             let currentDate = new Date(booking.checkInTime);
-//             while (currentDate <= booking.checkOutTime) {
-//                 const dateString = currentDate.toISOString().split('T')[0];
-//                 notAvailableDates.add(dateString);
-//                 currentDate.setDate(currentDate.getDate() + 1);
-//             }
-//         });
+            while (currentDateTime <= adjustedCheckOutTime) {
+                notAvailableSlots.push(currentDateTime.toISOString());
+                currentDateTime.setHours(currentDateTime.getHours() + 1);
+            }
+        });
 
-//         const availableDates = [];
-//         const start = new Date(startDate);
-//         const end = new Date(endDate);
+        const availableSlots = [];
+        let currentDateTime = new Date(startDate);
+        const endDateTime = new Date(endDate);
 
-//         const filteredNotAvailableDates = Array.from(notAvailableDates).filter(date => {
-//             const currentDate = new Date(date);
-//             return currentDate >= start && currentDate <= end;
-//         });
+        while (currentDateTime <= endDateTime) {
+            const timeString = currentDateTime.toISOString();
+            if (!notAvailableSlots.includes(timeString)) {
+                availableSlots.push(timeString);
+            }
+            currentDateTime.setHours(currentDateTime.getHours() + 1);
+        }
 
-//         let currentDate = new Date(startDate);
-//         while (currentDate <= end) {
-//             const dateString = currentDate.toISOString().split('T')[0];
-//             if (!notAvailableDates.has(dateString)) {
-//                 availableDates.push(dateString);
-//             }
-//             currentDate.setDate(currentDate.getDate() + 1);
-//         }
+        return res.status(200).json({
+            availableSlots,
+            notAvailableSlots
+        });
+    } catch (error) {
+        console.error('Error fetching room type availability:', error);
+        next(error);
+    }
+};
 
-//         return res.status(200).json({
-//             availableDates,
-//             notAvailableDates: filteredNotAvailableDates
-//         });
-//     } catch (error) {
-//         console.error('Error fetching room type availability:', error);
-//         next(error);
-//     }
-// };
+
 
 // Get rating for top 4 
 export const getTopRatedRoom = async (req, res, next) => {

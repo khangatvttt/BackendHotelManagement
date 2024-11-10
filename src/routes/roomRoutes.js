@@ -6,7 +6,7 @@ import {
     updateRoom,
     getBookedTimeOfRoom,
     getTopRatedRoom,
-    // getRoomTypeAvailability
+    getRoomTypeAvailability,
 } from '../controllers/roomController.js';
 
 const router = express.Router();
@@ -113,7 +113,7 @@ router.post('/', createRoom);
 router.get('/', getRooms);
 
 // Retrieve date availability and not availability based on typeRoom
-// router.get('/room-availability', getRoomTypeAvailability)
+router.get('/room-availability', getRoomTypeAvailability)
 
 
 // Retrieve top 4 room rating
