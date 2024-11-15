@@ -10,7 +10,7 @@ export const createRoom = async (req, res, next) => {
         // Check if TypeRoom existsn
         const typeRoom = await TypeRoom.findById(data.typeId);
         if (!typeRoom) {
-            throw new NotFoundError(`Typeroom with id ${typeRoom} doesn't exist`)
+            throw new NotFoundError(`Typeroom with id ${data.typeId} doesn't exist`)
         }
 
         const newRoom = new Room(data);
@@ -86,7 +86,7 @@ export const getRoomById = async (req, res, next) => {
 export const updateRoom = async (req, res, next) => {
     try {
         // Check if TypeRoom exists
-        const typeRoom = await TypeRoom.findById(req.body.TypeId);
+        const typeRoom = await TypeRoom.findById(req.body.typeId);
         if (!typeRoom) {
             throw new NotFoundError(`Typeroom with id ${typeRoom} doesn't exist`);
         }

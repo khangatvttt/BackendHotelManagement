@@ -71,10 +71,10 @@ export const updateStaff = async (req, res, next) => {
 
     checkPermisson(req.user, id);
 
-    const editableFields = ['password', 'fullName', 'gender', 'birthDate', 'phoneNumber'];
+    const editableFields = ['password', 'fullName', 'gender', 'birthDate', 'phoneNumber',];
 
     if (req.user.role == ROLES.ADMIN) {
-      editableFields.push('salary');
+      editableFields.push('salary','email');
     }
 
     // Filter updates to only include editable fields
@@ -90,7 +90,6 @@ export const updateStaff = async (req, res, next) => {
     },
       updates, {
       new: true,
-      runValidators: true,
     });
 
     if (!updatedUser) {

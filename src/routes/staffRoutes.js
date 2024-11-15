@@ -174,6 +174,14 @@ router.get('/:id', getStaff);
  *                 type: string
  *                 example: "987-654-3210"
  *                 description: "The phone number of the Staff."
+  *               email:
+ *                 type: string
+ *                 example: "staff@gmail.com"
+ *                 description: "Email of Staff"
+  *               salary:
+ *                 type: number
+ *                 example: "10000"
+ *                 description: "Salary of Staff"
  *     responses:
  *       200:
  *         description: Staff updated successfully
