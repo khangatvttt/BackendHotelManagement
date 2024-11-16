@@ -66,6 +66,7 @@ export const getStaff = async (req, res, next) => {
 
 export const updateStaff = async (req, res, next) => {
   try {
+
     const { id } = req.params; // Extract user ID from request parameters
     let updates = req.body;  // Extract updates from request body
 
@@ -74,8 +75,9 @@ export const updateStaff = async (req, res, next) => {
     const editableFields = ['password', 'fullName', 'gender', 'birthDate', 'phoneNumber',];
 
     if (req.user.role == ROLES.ADMIN) {
-      editableFields.push('salary','email');
+      editableFields.push('salary','email','status');
     }
+
 
     // Filter updates to only include editable fields
     updates = Object.keys(updates)

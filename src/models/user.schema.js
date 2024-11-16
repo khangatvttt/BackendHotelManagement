@@ -13,7 +13,6 @@ const userSchema = new Schema({
     phoneNumber: {
         type: String,
         required: true,
-        unique: true,
         validate: {
             validator: function (v) {
               return /^\d{10}$/.test(v);
@@ -24,8 +23,6 @@ const userSchema = new Schema({
     email: {
         type: String,
         required: true,
-        unique: true,
-        sparse: true,
         match: [ /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/, 'Invalid email format' ]
     },
     password: {
@@ -67,6 +64,22 @@ const userSchema = new Schema({
 }, options);
 
 userSchema.set('toJSON', { getters: true });
+
+userSchema.index(
+    { email: 1 },
+    {
+      unique: true,
+      partialFilterExpression: { email: { $type: "string" } },
+    }
+  );
+
+userSchema.index(
+    { phoneNumber: 1 },
+    {
+      unique: true,
+      partialFilterExpression: { phoneNumber: { $type: "string" } },
+    }
+  );
 
 
 //Hash password before save to database
