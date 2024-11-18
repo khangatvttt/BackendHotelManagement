@@ -47,6 +47,10 @@ export const getRooms = async (req, res, next) => {
       size = Math.min(size, 10);
   
       const totalDocuments = await Room.countDocuments(query);
+      if (totalDocuments==0){
+        res.status(200).json([])
+        return
+      }
       const totalPages = Math.ceil(totalDocuments / size);
       if (page > totalPages) {
         throw new BadRequestError('Excess page limit');

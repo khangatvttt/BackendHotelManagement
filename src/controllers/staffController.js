@@ -2,6 +2,7 @@ import ForbiddenError from '../errors/forbiddenError.js';
 import { Staff, User } from '../models/user.schema.js';
 import { ROLES } from '../models/roles.js';
 import NotFoundError from '../errors/badRequestError.js';
+import BadRequestError from '../errors/badRequestError.js';
 import Joi from 'joi'
 
 export const getAllStaffs = async (req, res, next) => {
@@ -37,14 +38,17 @@ export const getAllStaffs = async (req, res, next) => {
     }
 
     const totalDocuments = await Staff.countDocuments(query);
+    if (totalDocuments==0){
+      res.status(200).json([])
+      return
+    }
     const totalPages = Math.ceil(totalDocuments / size);
     if (page > totalPages) {
       throw new BadRequestError('Excess page limit');
     }
 
-    res.setHeader("X-Total-Count", `${totalPages}`);
-
     const users = await Staff.find(query).limit(size).skip(size * (page - 1));
+    console.log(tot)
     res.status(200).json({
       metadata: {
         currentPage: parseInt(page),

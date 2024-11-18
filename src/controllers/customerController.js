@@ -42,6 +42,10 @@ export const getAllCustomers = async (req, res, next) => {
 
     // Count total documents and calculate total pages
     const totalDocuments = await User.countDocuments(query);
+    if (totalDocuments==0){
+      res.status(200).json([])
+      return
+    }
     const totalPages = Math.ceil(totalDocuments / size);
 
     // Validate requested page

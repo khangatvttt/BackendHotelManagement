@@ -63,6 +63,10 @@ export const getAllRatings = async (req, res, next) => {
         }
 
         const totalDocuments = await Rating.countDocuments(query);
+        if (totalDocuments==0){
+            res.status(200).json([])
+            return
+          }
         const totalPages = Math.ceil(totalDocuments / size);
 
         if (page > totalPages) {
