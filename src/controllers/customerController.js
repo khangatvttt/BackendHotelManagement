@@ -15,15 +15,15 @@ export const getAllCustomers = async (req, res, next) => {
       status: Joi.boolean().optional(),
       page: Joi.number().integer().min(1).required(),
       size: Joi.number().integer().min(1).required()
-    })
+    });
 
-    const { error } = querySchema.validate(req.query)
+    const { error } = querySchema.validate(req.query);
     if (error) {
       throw error;
     }
 
     const { phone, email, fullName, gender, status, page } = req.query;
-    let { size } = req.query
+    let { size } = req.query;
 
     const query = {};
     if (phone) query.phoneNumber = phone;
@@ -32,25 +32,45 @@ export const getAllCustomers = async (req, res, next) => {
     if (gender) query.gender = gender;
     if (status) query.status = status === 'true';
 
-    query.role = { $in: [ROLES.CUSTOMER, ROLES.ONSITE_CUSTOMER] }
+    // Filter customers only by roles
+    query.role = { $in: [ROLES.CUSTOMER, ROLES.ONSITE_CUSTOMER] };
 
+    // Limit size to 10
     if (size > 10) {
-      size = 10
-    };
+      size = 10;
+    }
 
-    const totalDocuments = await User.countDocuments(query)
+    // Count total documents and calculate total pages
+    const totalDocuments = await User.countDocuments(query);
     const totalPages = Math.ceil(totalDocuments / size);
-    if (page > totalPages) {
+
+    // Validate requested page
+    if (page > totalPages && totalDocuments > 0) {
       throw new BadRequestError('Excess page limit');
     }
-    res.setHeader("X-Total-Count", `${totalPages}`);
 
-    const users = await User.find(query).limit(size).skip(size * (page - 1));
-    res.status(200).json(users);
+    // Fetch users
+    const users = await User.find(query)
+      .limit(size)
+      .skip(size * (page - 1));
+
+    // Prepare response
+    const response = {
+      metadata: {
+        currentPage: parseInt(page),
+        sizeEachPage: size,
+        totalElements: totalDocuments,
+        totalPages: totalPages
+      },
+      data: users
+    };
+
+    res.status(200).json(response);
   } catch (error) {
     next(error);
   }
 };
+
 
 export const getCustomer = async (req, res, next) => {
   try {

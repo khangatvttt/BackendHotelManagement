@@ -227,9 +227,9 @@ export const getBookings = async (req, res, next) => {
             currentStatus: Joi.string().optional(),
             page: Joi.number().integer().min(1).required(),
             size: Joi.number().integer().min(1).required()
-        })
+        });
 
-        const { error } = querySchema.validate(req.query)
+        const { error } = querySchema.validate(req.query);
 
         if (error) {
             throw error;
@@ -249,26 +249,44 @@ export const getBookings = async (req, res, next) => {
 
         checkPermisson(req.user, userId);
 
+        // Limit size to 10
         if (size > 10) {
-            size = 10
-        };
+            size = 10;
+        }
 
-        const totalDocuments = await Booking.countDocuments(query)
+        // Get total documents and calculate total pages
+        const totalDocuments = await Booking.countDocuments(query);
         const totalPages = Math.ceil(totalDocuments / size);
-        if (page > totalPages) {
+
+        // Check if requested page exceeds total pages
+        if (page > totalPages && totalDocuments > 0) {
             throw new BadRequestError('Excess page limit');
         }
-        res.setHeader("X-Total-Count", `${totalPages}`);
 
-
-        const bookings = await Booking.find(query).limit(size).skip(size * (page - 1))
+        // Fetch bookings
+        const bookings = await Booking.find(query)
+            .limit(size)
+            .skip(size * (page - 1))
             .populate('userId')
             .populate('roomIds');
-        res.status(200).json(bookings);
+
+        // Prepare metadata and response
+        const response = {
+            metadata: {
+                currentPage: parseInt(page),
+                sizeEachPage: parseInt(size),
+                totalElements: totalDocuments,
+                totalPages: totalPages
+            },
+            data: bookings
+        };
+
+        res.status(200).json(response);
     } catch (error) {
         next(error);
     }
 };
+
 
 // Get a Booking by ID
 export const getBookingById = async (req, res, next) => {

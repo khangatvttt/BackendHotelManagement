@@ -22,7 +22,7 @@ export const getAllStaffs = async (req, res, next) => {
     }
 
     const { phone, email, fullName, gender, status, page } = req.query;
-    let {size} = req.query
+    let { size } = req.query;
 
     const query = {};
     if (phone) query.phoneNumber = phone;
@@ -31,24 +31,34 @@ export const getAllStaffs = async (req, res, next) => {
     if (gender) query.gender = gender;
     if (status) query.status = status === 'true';
 
+    // Limit size to a max of 10 to avoid large data queries
     if (size > 10) {
-      size = 10
-    };
+      size = 10;
+    }
 
-    const totalDocuments = await Staff.countDocuments(query)
+    const totalDocuments = await Staff.countDocuments(query);
     const totalPages = Math.ceil(totalDocuments / size);
     if (page > totalPages) {
       throw new BadRequestError('Excess page limit');
     }
+
     res.setHeader("X-Total-Count", `${totalPages}`);
 
-
     const users = await Staff.find(query).limit(size).skip(size * (page - 1));
-    res.status(200).json(users);
+    res.status(200).json({
+      metadata: {
+        currentPage: parseInt(page),
+        sizeEachPage: parseInt(size),
+        totalElements: totalDocuments,
+        totalPages: totalPages
+      },
+      data: users
+    });
   } catch (error) {
     next(error);
   }
 };
+
 
 export const getStaff = async (req, res, next) => {
   try {

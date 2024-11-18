@@ -195,38 +195,54 @@ router.post('/', createBooking);
  *       - in: query
  *         name: currentStatus
  *         schema:
- *           type: boolean
+ *           type: string
  *         description: Filter bookings by current status
  *       - in: query
  *         name: size
- *         description: The number of elementals is in one page
+ *         description: The number of elements per page
  *         required: true
  *         schema:
  *           type: integer
+ *           example: 5
  *       - in: query
  *         name: page
- *         description: The page number that want to return
+ *         description: The page number to retrieve
  *         required: true
  *         schema:
  *           type: integer
+ *           example: 1
  *     responses:
  *       200:
- *         description: List of bookings
- *         headers:
- *           X-Total-Count:
- *             description: A total of page base on Size
- *             schema:
- *               type: string
+ *         description: List of bookings with metadata
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Booking'
+ *               type: object
+ *               properties:
+ *                 metadata:
+ *                   type: object
+ *                   properties:
+ *                     currentPage:
+ *                       type: integer
+ *                       example: 1
+ *                     sizeEachPage:
+ *                       type: integer
+ *                       example: 5
+ *                     totalElements:
+ *                       type: integer
+ *                       example: 20
+ *                     totalPages:
+ *                       type: integer
+ *                       example: 4
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Booking'
  *       400:
  *         description: Bad request
  */
 router.get('/', getBookings);
+
 
 /**
  * @swagger

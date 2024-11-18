@@ -75,40 +75,107 @@ router.post('/', createRoom);
  *         name: status
  *         schema:
  *           type: boolean
- *         description: Filter rooms by status
+ *         description: Filter rooms by status (true for active, false for inactive)
  *       - in: query
  *         name: size
- *         description: The number of elementals is in one page
+ *         description: The number of elements per page (maximum 10)
  *         required: true
  *         schema:
  *           type: integer
  *       - in: query
  *         name: page
- *         description: The page number that want to return
+ *         description: The page number to return
  *         required: true
  *         schema:
  *           type: integer
  *     responses:
  *       200:
- *         description: A list of rooms
- *         headers:
- *           X-Total-Count:
- *             description: A total of page base on Size
- *             schema:
- *               type: string
+ *         description: A list of rooms with pagination metadata
  *         content:
  *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 metadata:
+ *                   type: object
+ *                   properties:
+ *                     currentPage:
+ *                       type: integer
+ *                       description: The current page number
+ *                     sizeEachPage:
+ *                       type: integer
+ *                       description: The number of rooms per page
+ *                     totalElements:
+ *                       type: integer
+ *                       description: The total number of rooms
+ *                     totalPages:
+ *                       type: integer
+ *                       description: The total number of pages
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                         description: The unique identifier of the room
+ *                       roomNumber:
+ *                         type: string
+ *                         description: The room number
+ *                       typeId:
+ *                         type: object
+ *                         properties:
+ *                           _id:
+ *                             type: string
+ *                             description: The type ID of the room
+ *                           images:
+ *                             type: array
+ *                             items:
+ *                               type: string
+ *                             description: List of image URLs for the room
+ *                           typename:
+ *                             type: string
+ *                             description: The type name of the room (e.g., Deluxe Room)
+ *                       description:
+ *                         type: string
+ *                         description: A brief description of the room
+ *                       status:
+ *                         type: boolean
+ *                         description: The availability status of the room (true for active)
  *             example:
- *               - _id: "60f7d93d2b4f4c001ed1f4c8"
- *                 roomNumber: "101"
- *                 typeId:
- *                   _id: "60f7d93d2b4f4c001ed1f4c7"
- *                   images: ["image1.jpg", "image2.jpg"]
- *                   typename: "Deluxe Room"
- *                 description: "A spacious deluxe room"
- *                 status: true
+ *               metadata:
+ *                 currentPage: 1
+ *                 sizeEachPage: 3
+ *                 totalElements: 9
+ *                 totalPages: 3
+ *               data:
+ *                 - _id: "60f7d93d2b4f4c001ed1f4c8"
+ *                   roomNumber: "101"
+ *                   typeId:
+ *                     _id: "60f7d93d2b4f4c001ed1f4c7"
+ *                     images: ["image1.jpg", "image2.jpg"]
+ *                     typename: "Deluxe Room"
+ *                   description: "A spacious deluxe room"
+ *                   status: true
+ *                 - _id: "60f7d93d2b4f4c001ed1f4c9"
+ *                   roomNumber: "102"
+ *                   typeId:
+ *                     _id: "60f7d93d2b4f4c001ed1f4c7"
+ *                     images: ["image3.jpg", "image4.jpg"]
+ *                     typename: "Standard Room"
+ *                   description: "A cozy standard room"
+ *                   status: true
+ *                 - _id: "60f7d93d2b4f4c001ed1f4c10"
+ *                   roomNumber: "103"
+ *                   typeId:
+ *                     _id: "60f7d93d2b4f4c001ed1f4c7"
+ *                     images: ["image5.jpg", "image6.jpg"]
+ *                     typename: "Superior Room"
+ *                   description: "A premium superior room"
+ *                   status: false
  */
 router.get('/', getRooms);
+
 
 /**
  * @swagger

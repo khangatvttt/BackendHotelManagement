@@ -18,6 +18,70 @@ const router = express.Router();
 
 /**
  * @swagger
+ * components:
+ *   schemas:
+ *     Rating:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           type: string
+ *           description: The unique identifier of the rating
+ *           example: "6727a1d346ecf25c91b10d83"
+ *         bookingId:
+ *           type: object
+ *           description: Details of the associated booking
+ *           properties:
+ *             _id:
+ *               type: string
+ *               description: The unique identifier of the booking
+ *               example: "671f138dc45752411d1c232e"
+ *             userId:
+ *               type: object
+ *               description: Details of the user who made the booking
+ *               properties:
+ *                 _id:
+ *                   type: string
+ *                   description: The unique identifier of the user
+ *                   example: "671dcd0a222dcb3e4993674b"
+ *                 fullName:
+ *                   type: string
+ *                   description: Full name of the user
+ *                   example: "Nguyễn Phú Khang"
+ *                 role:
+ *                   type: string
+ *                   description: Role of the user
+ *                   example: "OnSiteCustomer"
+ *                 id:
+ *                   type: string
+ *                   description: The user ID for public reference
+ *                   example: "671dcd0a222dcb3e4993674b"
+ *         typeRoomId:
+ *           type: string
+ *           description: ID of the room type associated with the rating
+ *           example: "6705f9e148140aaf9f1ac9cb"
+ *         score:
+ *           type: number
+ *           description: The rating score (minimum 1, maximum 5)
+ *           format: float
+ *           example: 4.5
+ *         feedback:
+ *           type: string
+ *           description: User's feedback for the rating
+ *           example: "So beautiful"
+ *         createAt:
+ *           type: string
+ *           format: date-time
+ *           description: When the rating was created
+ *           example: "2024-11-03T16:15:47.246Z"
+ *         __v:
+ *           type: integer
+ *           description: The version key (used internally by MongoDB)
+ *           example: 0
+ */
+
+
+/**
+ * @swagger
  * /api/rating:
  *   post:
  *     summary: Create a new rating
@@ -62,48 +126,72 @@ router.post('/', createRating);
  *     parameters:
  *       - in: query
  *         name: size
- *         description: The number of elementals is in one page
+ *         description: The number of elements per page (max 10).
  *         schema:
  *           type: integer
+ *           example: 5
  *       - in: query
  *         name: page
- *         description: The page number that want to return
+ *         description: The page number to retrieve.
  *         schema:
  *           type: integer
+ *           example: 1
  *       - in: query
  *         name: score
- *         description: Get ratings with this score, min 1, max 5
+ *         description: Filter ratings by score (min 1, max 5).
  *         schema:
- *           type: integer/half-interger
+ *           type: number
+ *           format: float
+ *           example: 4.5
  *       - in: query
- *         name: page
- *         description: The page number that want to return
+ *         name: typeRoomId
+ *         description: Filter ratings by TypeRoom ID.
  *         schema:
- *           type: integer
- *       - in: query
- *         name: typeId
- *         description: Get ratings by type room
- *         required: true
- *         schema:
- *           type: integer
+ *           type: string
+ *           example: "64d890843cabc72cbd028a11"
  *       - in: query
  *         name: bookingId
- *         description: Get ratings by booking
- *         required: true
+ *         description: Filter ratings by Booking ID.
  *         schema:
- *           type: integer
+ *           type: string
+ *           example: "64d890843cabc72cbd028b01"
  *     responses:
  *       200:
- *         description: List of all ratings
- *         headers:
- *           X-Total-Count:
- *             description: A total of page base on Size
+ *         description: A list of ratings with metadata.
+ *         content:
+ *           application/json:
  *             schema:
- *               type: string
+ *               type: object
+ *               properties:
+ *                 metadata:
+ *                   type: object
+ *                   properties:
+ *                     currentPage:
+ *                       type: integer
+ *                       description: The current page number.
+ *                       example: 1
+ *                     sizeEachPage:
+ *                       type: integer
+ *                       description: The number of elements per page.
+ *                       example: 5
+ *                     totalElements:
+ *                       type: integer
+ *                       description: The total number of ratings.
+ *                       example: 50
+ *                     totalPages:
+ *                       type: integer
+ *                       description: The total number of pages.
+ *                       example: 10
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Rating'
+ *       400:
+ *         description: Invalid query parameters.
  *       500:
- *         description: Internal server error
+ *         description: Internal server error.
  */
-router.get('/', getAllRatings);
+
 
 /**
  * @swagger

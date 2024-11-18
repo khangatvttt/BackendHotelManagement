@@ -17,7 +17,7 @@ const router = express.Router();
  * /api/staffs:
  *   get:
  *     summary: Get all Staffs
- *     description: This endpoint retrieves a list of all staffs, with optional filtering by phone, email, fullName, gender, and status. Only Admin can access this endpoint
+ *     description: This endpoint retrieves a list of all staffs, with optional filtering by phone, email, fullName, gender, and status. Only Admin can access this endpoint.
  *     tags: [Staffs]
  *     parameters:
  *       - in: query
@@ -48,62 +48,84 @@ const router = express.Router();
  *         description: Filter by account status (true for active, false for inactive).
  *       - in: query
  *         name: size
- *         description: The number of elementals is in one page
+ *         description: The number of elements in one page (maximum size of 10).
  *         required: true
  *         schema:
  *           type: integer
  *       - in: query
  *         name: page
- *         description: The page number that want to return
+ *         description: The page number to return.
  *         required: true
  *         schema:
  *           type: integer
  *     responses:
  *       200:
- *         description: A list of staffs
- *         headers:
- *           X-Total-Count:
- *             description: A total of page base on Size
- *             schema:
- *               type: string
+ *         description: A list of staff members with pagination metadata.
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/staff'
+ *               type: object
+ *               properties:
+ *                 metadata:
+ *                   type: object
+ *                   properties:
+ *                     currentPage:
+ *                       type: integer
+ *                       description: The current page number.
+ *                     sizeEachPage:
+ *                       type: integer
+ *                       description: The number of staff members per page.
+ *                     totalElements:
+ *                       type: integer
+ *                       description: The total number of staff members.
+ *                     totalPages:
+ *                       type: integer
+ *                       description: The total number of pages.
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/staff'
  *         examples:
  *           application/json:
- *             value: [
- *               {
- *                 "id": "67089084acc972cbd027bc05",
- *                 "email": "khangatvttt@gmail.com",
- *                 "fullName": "11",
- *                 "gender": "Female",
- *                 "birthDate": "1985-05-15T00:00:00.000Z",
- *                 "phoneNumber": "987-654-3210",
- *                 "status": true,
- *                 "role": "Staff",
- *                 "point": 0,
- *                 "version": 0,
- *                 "isVerified": true
+ *             value: {
+ *               "metadata": {
+ *                 "currentPage": 1,
+ *                 "sizeEachPage": 2,
+ *                 "totalElements": 4,
+ *                 "totalPages": 2
  *               },
- *               {
- *                 "id": "670895556f7a8b1acfe73a04",
- *                 "email": "Staffssss@aaa.com",
- *                 "fullName": "Jane Smith",
- *                 "gender": "Female",
- *                 "birthDate": "1985-05-15T00:00:00.000Z",
- *                 "phoneNumber": "987-654-3210",
- *                 "status": true,
- *                 "role": "Staff",
- *                 "salary": 50000,
- *                 "version": 0,
- *                 "isVerified": false
- *               }
- *             ]
+ *               "data": [
+ *                 {
+ *                   "id": "67089084acc972cbd027bc05",
+ *                   "email": "khangatvttt@gmail.com",
+ *                   "fullName": "11",
+ *                   "gender": "Female",
+ *                   "birthDate": "1985-05-15T00:00:00.000Z",
+ *                   "phoneNumber": "987-654-3210",
+ *                   "status": true,
+ *                   "role": "Staff",
+ *                   "point": 0,
+ *                   "version": 0,
+ *                   "isVerified": true
+ *                 },
+ *                 {
+ *                   "id": "670895556f7a8b1acfe73a04",
+ *                   "email": "Staffssss@aaa.com",
+ *                   "fullName": "Jane Smith",
+ *                   "gender": "Female",
+ *                   "birthDate": "1985-05-15T00:00:00.000Z",
+ *                   "phoneNumber": "987-654-3210",
+ *                   "status": true,
+ *                   "role": "Staff",
+ *                   "salary": 50000,
+ *                   "version": 0,
+ *                   "isVerified": false
+ *                 }
+ *               ]
+ *             }
  */
 router.get('/', authorizeRoles(ROLES.ADMIN), getAllStaffs);
+
 
 /**
  * @swagger

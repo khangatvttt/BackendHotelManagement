@@ -48,62 +48,81 @@ const router = express.Router();
  *         description: Filter by account status (true for active, false for inactive).
  *       - in: query
  *         name: size
- *         description: The number of elementals is in one page
+ *         description: The number of elements per page
  *         required: true
  *         schema:
  *           type: integer
+ *           example: 10
  *       - in: query
  *         name: page
- *         description: The page number that want to return
+ *         description: The page number to retrieve
  *         required: true
  *         schema:
  *           type: integer
+ *           example: 1
  *     responses:
  *       200:
- *         description: A list of customers
- *         headers:
- *           X-Total-Count:
- *             description: A total of page base on Size
- *             schema:
- *               type: string
+ *         description: A paginated list of customers
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/customer'
- *         examples:
- *           application/json:
- *             value: [
- *               {
- *                 "id": "67089084acc972cbd027bc05",
- *                 "email": "khangatvttt@gmail.com",
- *                 "fullName": "11",
- *                 "gender": "Female",
- *                 "birthDate": "1985-05-15T00:00:00.000Z",
- *                 "phoneNumber": "9876543210",
- *                 "status": true,
- *                 "role": "Customer",
- *                 "point": 0,
- *                 "version": 0,
- *                 "isVerified": true
- *               },
- *               {
- *                 "id": "670895556f7a8b1acfe73a04",
- *                 "email": "customerssss@aaa.com",
- *                 "fullName": "Jane Smith",
- *                 "gender": "Female",
- *                 "birthDate": "1985-05-15T00:00:00.000Z",
- *                 "phoneNumber": "9876543210",
- *                 "status": true,
- *                 "role": "Staff",
- *                 "salary": 50000,
- *                 "version": 0,
- *                 "isVerified": false
- *               }
- *             ]
+ *               type: object
+ *               properties:
+ *                 metadata:
+ *                   type: object
+ *                   properties:
+ *                     currentPage:
+ *                       type: integer
+ *                       example: 1
+ *                     sizeEachPage:
+ *                       type: integer
+ *                       example: 10
+ *                     totalElements:
+ *                       type: integer
+ *                       example: 50
+ *                     totalPages:
+ *                       type: integer
+ *                       example: 5
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Customer'
+ *             examples:
+ *               application/json:
+ *                 value:
+ *                   metadata:
+ *                     currentPage: 1
+ *                     sizeEachPage: 10
+ *                     totalElements: 50
+ *                     totalPages: 5
+ *                   data:
+ *                     - id: "67089084acc972cbd027bc05"
+ *                       email: "khangatvttt@gmail.com"
+ *                       fullName: "John Doe"
+ *                       gender: "Male"
+ *                       birthDate: "1985-05-15T00:00:00.000Z"
+ *                       phoneNumber: "9876543210"
+ *                       status: true
+ *                       role: "Customer"
+ *                       point: 0
+ *                       version: 0
+ *                       isVerified: true
+ *                     - id: "670895556f7a8b1acfe73a04"
+ *                       email: "customerssss@aaa.com"
+ *                       fullName: "Jane Smith"
+ *                       gender: "Female"
+ *                       birthDate: "1990-07-12T00:00:00.000Z"
+ *                       phoneNumber: "9876543211"
+ *                       status: false
+ *                       role: "Staff"
+ *                       salary: 50000
+ *                       version: 0
+ *                       isVerified: false
+ *       400:
+ *         description: Bad request
  */
 router.get('/', authorizeRoles(ROLES.ADMIN, ROLES.STAFF), getAllCustomers);
+
 
 /**
  * @swagger

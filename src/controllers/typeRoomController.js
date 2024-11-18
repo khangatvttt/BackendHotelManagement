@@ -92,7 +92,7 @@ export const getTypeRooms = async (req, res, next) => {
             query.limit = req.query.limit;
         }
 
-        let bookedRoomIds=[];
+        let bookedRoomIds = [];
         if (req.query.checkInTime && req.query.checkOutTime) {
             const checkInTime = new Date(req.query.checkInTime);
             const checkOutTime = new Date(req.query.checkOutTime);
@@ -112,28 +112,26 @@ export const getTypeRooms = async (req, res, next) => {
             }).select('roomIds');
 
             bookedRoomIds = conflictBookings.flatMap(booking => booking.roomIds);
-            bookedRoomIds = bookedRoomIds.map(room => room.toString())
-
+            bookedRoomIds = bookedRoomIds.map(room => room.toString());
         }
 
-        let {size} = req.query
-        const {page} = req.query
+        let { size } = req.query;
+        const { page } = req.query;
 
         if (size > 10) {
-            size = 10
+            size = 10;
         };
 
-        const totalDocuments = await TypeRoom.countDocuments(query)
+        const totalDocuments = await TypeRoom.countDocuments(query);
         const totalPages = Math.ceil(totalDocuments / size);
         if (page > totalPages) {
             throw new BadRequestError('Excess page limit');
         }
-        res.setHeader("X-Total-Count", `${totalPages}`);
 
         // Find typeRooms
-        const typeRooms = await TypeRoom.find(query).limit(size).skip(size*(page-1)).lean();
+        const typeRooms = await TypeRoom.find(query).limit(size).skip(size * (page - 1)).lean();
 
-        // Caculate how many room available
+        // Calculate how many rooms are available
         for (const type of typeRooms) {
             const roomsOfType = await Room.find({
                 typeId: type._id,
@@ -141,15 +139,13 @@ export const getTypeRooms = async (req, res, next) => {
             }).select('_id');
             const allRoomsThisType = roomsOfType.map(room => room._id);
 
-
-
             // Remove all rooms that are booked
             const availableRooms = allRoomsThisType.filter(room => !bookedRoomIds.includes(room.toString()));
             // Number of rooms that are available for booking
             type.availableRoom = availableRooms.length;
 
             // Average rating score and total ratings for this type
-            const rating = {}
+            const rating = {};
             const result = await Rating.aggregate([
                 { $match: { typeRoomId: type._id } },
                 {
@@ -171,15 +167,23 @@ export const getTypeRooms = async (req, res, next) => {
             }
 
             type.rating = rating;
-
         }
 
-
-        res.status(200).json(typeRooms);
+        // Return metadata and data in the response
+        res.status(200).json({
+            metadata: {
+                currentPage: parseInt(page),
+                sizeEachPage: parseInt(size),
+                totalElements: totalDocuments,
+                totalPages: totalPages
+            },
+            data: typeRooms
+        });
     } catch (error) {
         next(error);
     }
 };
+
 
 // Get a single TypeRoom by ID
 export const getTypeRoomById = async (req, res, next) => {
@@ -269,4 +273,58 @@ export const updateTypeRoom = async (req, res, next) => {
         next(error);
     }
 };
+
+export const availableRoomsByType = async (req, res, next) => {
+    try {
+        const bodySchema = Joi.object({
+            checkInTime: Joi.date().required(),
+            checkOutTime: Joi.date().required(),
+        });
+
+        const { error } = bodySchema.validate(req.query);
+
+        if (error) {
+            throw error;
+        }
+
+        let bookedRoomIds = [];
+        const checkInTime = new Date(req.query.checkInTime);
+        const checkOutTime = new Date(req.query.checkOutTime);
+        // Two hour after check out for room services
+        const adjustedCheckOut = new Date(checkOutTime.getTime() + 2 * 60 * 60 * 1000); // 2 hours after check-out
+
+        if (checkInTime > checkOutTime || checkInTime.getTime() < Date.now()) {
+            throw new BadRequestError("checkInTime must be before checkOutTime and be a date in future");
+        }
+
+        // Rooms that are booked in selected time
+        const conflictBookings = await Booking.find({
+            currentStatus: 'Reserved',
+            $or: [
+                { checkInTime: { $lt: adjustedCheckOut }, checkOutTime: { $gt: checkInTime } }
+            ]
+        }).select('roomIds');
+
+        bookedRoomIds = conflictBookings.flatMap(booking => booking.roomIds);
+        bookedRoomIds = bookedRoomIds.map(room => room.toString())
+        const roomsOfType = await Room.find({
+            typeId: req.params.id,
+            status: true
+        }).select('_id');
+        const allRoomsThisType = roomsOfType.map(room => room._id);
+
+
+
+        // Remove all rooms that are booked
+        const availableRooms = allRoomsThisType.filter(room => !bookedRoomIds.includes(room.toString()));
+        // Number of rooms that are available for booking
+        res.status(200).json({
+            'availableRoom': availableRooms.length
+        })
+    }
+    catch (err) {
+        next(err)
+    }
+
+}
 

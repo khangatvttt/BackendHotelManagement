@@ -24,47 +24,65 @@ export const createRoom = async (req, res, next) => {
 // Get all Rooms
 export const getRooms = async (req, res, next) => {
     try {
-
-        const querySchema = Joi.object({
-            typeId: Joi.string().optional(),
-            status: Joi.boolean().optional(),
-            page: Joi.number().integer().min(1).required(),
-            size: Joi.number().integer().min(1).required()
-          })
-      
-          const { error } = querySchema.validate(req.query)
-          if (error) {
-            throw error;
-          }
-
-        const {typeId, status, page} = req.query
-        let {size} = req.query
-
-        const query = {};
-        if (typeId) query.typeId = typeId;
-        if (status) query.status = status === 'true';
-
-        if (size > 10) {
-            size = 10
-          };
-      
-          const totalDocuments = await Room.countDocuments(query)
-          const totalPages = Math.ceil(totalDocuments / size);
-          if (page > totalPages) {
-            throw new BadRequestError('Excess page limit');
-          }
-          res.setHeader("X-Total-Count", `${totalPages}`);
-      
- 
-        const rooms = await Room.find(query).limit(size).skip(size * (page-1)).populate({
-            path: 'typeId',
-            select: 'images typename'
+      const querySchema = Joi.object({
+        typeId: Joi.string().optional(),
+        status: Joi.boolean().optional(),
+        page: Joi.number().integer().min(1).required(),
+        size: Joi.number().integer().min(1).required(),
+      });
+  
+      const { error } = querySchema.validate(req.query);
+      if (error) {
+        throw error;
+      }
+  
+      const { typeId, status, page } = req.query;
+      let { size } = req.query;
+  
+      const query = {};
+      if (typeId) query.typeId = typeId;
+      if (status !== undefined) query.status = status;
+  
+      // Ensure `size` does not exceed a limit (e.g., 10) for pagination safety
+      size = Math.min(size, 10);
+  
+      const totalDocuments = await Room.countDocuments(query);
+      const totalPages = Math.ceil(totalDocuments / size);
+      if (page > totalPages) {
+        throw new BadRequestError('Excess page limit');
+      }
+  
+      res.setHeader("X-Total-Count", `${totalPages}`);
+  
+      const rooms = await Room.find(query)
+        .limit(size)
+        .skip(size * (page - 1))
+        .populate({
+          path: 'typeId',
+          select: 'images typename',
         });
-        res.status(200).json(rooms);
+  
+      // Sort rooms by room type name (ascending)
+      rooms.sort((a, b) => {
+        if (a.typeId.typename < b.typeId.typename) return -1;
+        if (a.typeId.typename > b.typeId.typename) return 1;
+        return 0;
+      });
+  
+      res.status(200).json({
+        metadata: {
+          currentPage: parseInt(page),
+          sizeEachPage: size,
+          totalElements: totalDocuments,
+          totalPages: totalPages,
+        },
+        data: rooms,
+      });
     } catch (error) {
-        next(error);
+      next(error);
     }
-};
+  };
+  
 
 // Get a single Room by ID
 export const getRoomById = async (req, res, next) => {
