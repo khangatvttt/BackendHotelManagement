@@ -3,7 +3,8 @@ import {
     createTypeRoom,
     getTypeRooms,
     getTypeRoomById,
-    updateTypeRoom
+    updateTypeRoom,
+    getTopRatedTypeRooms
 } from '../controllers/typeRoomController.js';
 import multer from 'multer';
 import dotenv from 'dotenv'
@@ -160,6 +161,9 @@ router.post('/', upload.array('images', parseInt(process.env.MAX_IMAGES)), creat
  *                 $ref: '#/components/schemas/TypeRoom'
  */
 router.get('/', getTypeRooms);
+
+//Get the top 3 highest rated room types
+router.get('/top-rated', getTopRatedTypeRooms);
 
 /**
  * @swagger
