@@ -38,7 +38,7 @@ export const createRating = async (req, res, next) => {
 export const getAllRatings = async (req, res, next) => {
     try {
         const { score, typeRoomId, bookingId, page } = req.query;
-        let { size } = req.query
+        let { size } = req.query;
 
         const querySchema = Joi.object({
             typeRoomId: Joi.string().optional(),
@@ -46,9 +46,9 @@ export const getAllRatings = async (req, res, next) => {
             bookingId: Joi.string().optional(),
             page: Joi.number().integer().min(1).required(),
             size: Joi.number().integer().min(1).required()
-        })
+        });
 
-        const { error } = querySchema.validate(req.query)
+        const { error } = querySchema.validate(req.query);
         if (error) {
             throw error;
         }
@@ -59,31 +59,46 @@ export const getAllRatings = async (req, res, next) => {
         if (bookingId) query.bookingId = bookingId;
 
         if (size > 10) {
-            size = 10
-        };
+            size = 10;
+        }
 
-        const totalDocuments = await Rating.countDocuments(query)
+        const totalDocuments = await Rating.countDocuments(query);
+        if (totalDocuments==0){
+            res.status(200).json([])
+            return
+          }
         const totalPages = Math.ceil(totalDocuments / size);
+
         if (page > totalPages) {
             throw new BadRequestError('Excess page limit');
         }
-        res.setHeader("X-Total-Count", `${totalPages}`);
 
-
-        const ratings = await Rating.find(query).limit(size).skip(size * (page - 1))
+        const ratings = await Rating.find(query)
+            .limit(size)
+            .skip(size * (page - 1))
             .populate({
                 path: 'bookingId',
                 populate: {
-                    path: 'userId',  
+                    path: 'userId',
                     select: 'fullName'
                 },
                 select: 'userId'
             });
-        res.status(200).json(ratings);
+
+        res.status(200).json({
+            metadata: {
+                currentPage: parseInt(page, 10),
+                sizeEachPage: parseInt(size, 10),
+                totalElements: totalDocuments,
+                totalPages: totalPages
+            },
+            data: ratings
+        });
     } catch (error) {
         next(error);
     }
 };
+
 
 // Get a single Rating by ID
 export const getRatingById = async (req, res, next) => {

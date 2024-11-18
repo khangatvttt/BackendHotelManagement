@@ -120,13 +120,15 @@ router.post('/', upload.array('images', parseInt(process.env.MAX_IMAGES)), creat
  *       - in: query
  *         name: checkInTime
  *         schema:
- *           type: Date
- *         description: Caculate available rooms for each type by checkInTime and checkOutTime (if use, checkOutTime must be included)
+ *           type: string
+ *           format: date-time
+ *         description: Calculate available rooms for each type by checkInTime and checkOutTime (if used, checkOutTime must be included)
  *       - in: query
  *         name: checkOutTime
  *         schema:
- *           type: Date
- *         description: Caculate available rooms for each type by checkInTime and checkOutTime (if use, checkInTime must be included)
+ *           type: string
+ *           format: date-time
+ *         description: Calculate available rooms for each type by checkInTime and checkOutTime (if used, checkInTime must be included)
  *       - in: query
  *         name: limit
  *         description: Filter by limit of the type room
@@ -134,31 +136,74 @@ router.post('/', upload.array('images', parseInt(process.env.MAX_IMAGES)), creat
  *           type: integer
  *       - in: query
  *         name: size
- *         description: The number of elementals is in one page
+ *         description: The number of elements in one page
  *         required: true
  *         schema:
  *           type: integer
  *       - in: query
  *         name: page
- *         description: The page number that want to return
+ *         description: The page number that you want to return
  *         required: true
  *         schema:
  *           type: integer
  *     tags: [TypeRoom]
  *     responses:
  *       200:
- *         description: A list of TypeRooms
- *         headers:
- *           X-Total-Count:
- *             description: A total of page base on Size
- *             schema:
- *               type: string
+ *         description: A list of TypeRooms along with metadata for pagination
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/TypeRoom'
+ *               type: object
+ *               properties:
+ *                 metadata:
+ *                   type: object
+ *                   properties:
+ *                     currentPage:
+ *                       type: integer
+ *                       description: Current page number
+ *                     sizeEachPage:
+ *                       type: integer
+ *                       description: Number of elements per page
+ *                     totalElements:
+ *                       type: integer
+ *                       description: Total number of elements across all pages
+ *                     totalPages:
+ *                       type: integer
+ *                       description: Total number of pages
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/TypeRoom'
+ *         examples:
+ *           application/json:
+ *             value: {
+ *               "metadata": {
+ *                 "currentPage": 1,
+ *                 "sizeEachPage": 10,
+ *                 "totalElements": 100,
+ *                 "totalPages": 10
+ *               },
+ *               "data": [
+ *                 {
+ *                   "_id": "type1",
+ *                   "name": "Deluxe Room",
+ *                   "availableRoom": 5,
+ *                   "rating": {
+ *                     "averageScore": 4.5,
+ *                     "totalRating": 50
+ *                   }
+ *                 },
+ *                 {
+ *                   "_id": "type2",
+ *                   "name": "Standard Room",
+ *                   "availableRoom": 3,
+ *                   "rating": {
+ *                     "averageScore": 4.0,
+ *                     "totalRating": 30
+ *                   }
+ *                 }
+ *               ]
+ *             }
  */
 router.get('/', getTypeRooms);
 
@@ -245,5 +290,50 @@ router.get('/:id', getTypeRoomById);
  *         description: TypeRoom not found
  */
 router.put('/:id', upload.array('images', parseInt(process.env.MAX_IMAGES)), updateTypeRoom);
+
+/**
+ * @swagger
+ * /api/typerooms/{id}/availableRooms:
+ *   get:
+ *     summary: Check how many rooms are available in a specific time
+ *     tags: [TypeRoom]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The ID of the TypeRoom to check
+ *       - in: query
+ *         name: checkInTime
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         required: true
+ *         description: The check-in time
+ *       - in: query
+ *         name: checkOutTime
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         required: true
+ *         description: The check-out time
+ *     responses:
+ *       200:
+ *         description: Number of available rooms
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 availableRooms:
+ *                   type: integer
+ *                   example: 5
+ *       400:
+ *         description: Bad request
+ *       404:
+ *         description: TypeRoom not found
+ */
+router.get('/:id/availableRooms', availableRoomsByType);
 
 export default router;

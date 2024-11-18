@@ -2,6 +2,7 @@ import ForbiddenError from '../errors/forbiddenError.js';
 import { Staff, User } from '../models/user.schema.js';
 import { ROLES } from '../models/roles.js';
 import NotFoundError from '../errors/badRequestError.js';
+import BadRequestError from '../errors/badRequestError.js';
 import Joi from 'joi'
 
 export const getAllStaffs = async (req, res, next) => {
@@ -22,7 +23,7 @@ export const getAllStaffs = async (req, res, next) => {
     }
 
     const { phone, email, fullName, gender, status, page } = req.query;
-    let {size} = req.query
+    let { size } = req.query;
 
     const query = {};
     if (phone) query.phoneNumber = phone;
@@ -31,24 +32,37 @@ export const getAllStaffs = async (req, res, next) => {
     if (gender) query.gender = gender;
     if (status) query.status = status === 'true';
 
+    // Limit size to a max of 10 to avoid large data queries
     if (size > 10) {
-      size = 10
-    };
+      size = 10;
+    }
 
-    const totalDocuments = await Staff.countDocuments(query)
+    const totalDocuments = await Staff.countDocuments(query);
+    if (totalDocuments==0){
+      res.status(200).json([])
+      return
+    }
     const totalPages = Math.ceil(totalDocuments / size);
     if (page > totalPages) {
       throw new BadRequestError('Excess page limit');
     }
-    res.setHeader("X-Total-Count", `${totalPages}`);
-
 
     const users = await Staff.find(query).limit(size).skip(size * (page - 1));
-    res.status(200).json(users);
+    console.log(tot)
+    res.status(200).json({
+      metadata: {
+        currentPage: parseInt(page),
+        sizeEachPage: parseInt(size),
+        totalElements: totalDocuments,
+        totalPages: totalPages
+      },
+      data: users
+    });
   } catch (error) {
     next(error);
   }
 };
+
 
 export const getStaff = async (req, res, next) => {
   try {
@@ -66,16 +80,18 @@ export const getStaff = async (req, res, next) => {
 
 export const updateStaff = async (req, res, next) => {
   try {
+
     const { id } = req.params; // Extract user ID from request parameters
     let updates = req.body;  // Extract updates from request body
 
     checkPermisson(req.user, id);
 
-    const editableFields = ['password', 'fullName', 'gender', 'birthDate', 'phoneNumber'];
+    const editableFields = ['password', 'fullName', 'gender', 'birthDate', 'phoneNumber',];
 
     if (req.user.role == ROLES.ADMIN) {
-      editableFields.push('salary');
+      editableFields.push('salary','email','status');
     }
+
 
     // Filter updates to only include editable fields
     updates = Object.keys(updates)
@@ -90,7 +106,6 @@ export const updateStaff = async (req, res, next) => {
     },
       updates, {
       new: true,
-      runValidators: true,
     });
 
     if (!updatedUser) {
