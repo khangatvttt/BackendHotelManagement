@@ -48,7 +48,16 @@ export const getRooms = async (req, res, next) => {
   
       const totalDocuments = await Room.countDocuments(query);
       if (totalDocuments==0){
-        res.status(200).json([])
+        res.status(200).json({
+          "metadata": {
+            "currentPage": 0,
+            "sizeEachPage": 0,
+            "totalElements": 0,
+            "totalPages": 0
+          },
+          "data": [
+          ]
+        })
         return
       }
       const totalPages = Math.ceil(totalDocuments / size);
