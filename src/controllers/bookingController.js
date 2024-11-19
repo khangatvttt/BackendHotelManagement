@@ -257,7 +257,16 @@ export const getBookings = async (req, res, next) => {
         // Get total documents and calculate total pages
         const totalDocuments = await Booking.countDocuments(query);
         if (totalDocuments==0){
-            res.status(200).json([])
+            res.status(200).json({
+                "metadata": {
+                  "currentPage": 0,
+                  "sizeEachPage": 0,
+                  "totalElements": 0,
+                  "totalPages": 0
+                },
+                "data": [
+                ]
+              })
             return
           }
         const totalPages = Math.ceil(totalDocuments / size);
