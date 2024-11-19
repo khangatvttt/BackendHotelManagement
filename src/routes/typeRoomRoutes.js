@@ -4,7 +4,8 @@ import {
     getTypeRooms,
     getTypeRoomById,
     updateTypeRoom,
-    getTopRatedTypeRooms
+    getTopRatedTypeRooms,
+    availableRoomsByType
 } from '../controllers/typeRoomController.js';
 import multer from 'multer';
 import dotenv from 'dotenv'
