@@ -65,8 +65,6 @@ export const getRooms = async (req, res, next) => {
       throw new BadRequestError('Excess page limit');
     }
 
-    res.setHeader("X-Total-Count", `${totalPages}`);
-
     const rooms = await Room.find(query)
       .limit(size)
       .skip(size * (page - 1))

@@ -243,8 +243,8 @@ export const getBookings = async (req, res, next) => {
         if (roomId) query.roomIds = roomId;
         if (currentStatus) query.currentStatus = currentStatus;
         if (checkInTime && checkOutTime) {
-            query.checkInTime = { $gte: checkInTime };
-            query.checkOutTime = { $lte: checkOutTime };
+            query.checkInTime = { $lte: checkOutTime };
+            query.checkOutTime = { $gte: checkInTime };
         }
 
         checkPermisson(req.user, userId);
