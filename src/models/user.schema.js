@@ -8,7 +8,6 @@ const { Schema } = mongoose;
 // Base user schema options
 const options = { discriminatorKey: 'role', collection: 'users', retainKeyOrder: true };
 
-// Base User schema
 const userSchema = new Schema({
     phoneNumber: {
         type: String,

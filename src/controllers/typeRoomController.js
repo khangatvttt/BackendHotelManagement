@@ -287,6 +287,60 @@ export const updateTypeRoom = async (req, res, next) => {
     }
 };
 
+//Get the top 3 highest rated room types
+export const getTopRatedTypeRooms = async (req, res, next) => {
+    try {
+        const topRatedRooms = await Rating.aggregate([
+            {
+                $group: {
+                    _id: '$typeRoomId',
+                    averageScore: { $avg: '$score' },
+                    totalRatings: { $sum: 1 }
+                }
+            },
+            {
+                $sort: { averageScore: -1 }
+            },
+            {
+                $limit: 3
+            },
+            {
+                $lookup: {
+                    from: 'typerooms',
+                    localField: '_id',
+                    foreignField: '_id',
+                    as: 'typeRoomDetails'
+                }
+            },
+            {
+                $unwind: '$typeRoomDetails'
+            },
+            {
+                $project: {
+                    _id: 0,
+                    typeRoomId: '$_id',
+                    typename: '$typeRoomDetails.typename',
+                    description: '$typeRoomDetails.description',
+                    limit: '$typeRoomDetails.limit',
+                    price: '$typeRoomDetails.price',
+                    images: '$typeRoomDetails.images',
+                    averageScore: 1,
+                    totalRatings: 1
+                }
+            }
+        ]);
+
+        if (!topRatedRooms.length) {
+            return res.status(404).json({ message: 'No top-rated rooms found' });
+        }
+
+        res.status(200).json(topRatedRooms);
+    } catch (error) {
+        next(error);
+    }
+};
+
+
 export const availableRoomsByType = async (req, res, next) => {
     try {
         const bodySchema = Joi.object({
@@ -340,4 +394,5 @@ export const availableRoomsByType = async (req, res, next) => {
     }
 
 }
+
 

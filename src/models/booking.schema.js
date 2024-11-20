@@ -24,7 +24,6 @@ const bookingSchema = new mongoose.Schema({
         type: Date,
         required: true
     },
-
     numberOfGuests: { //How many people booked this time
         type: Number,
         required: true

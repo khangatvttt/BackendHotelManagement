@@ -21,7 +21,6 @@ import jwtMiddleware from './src/middlewares/jwtMiddleware.js'
 import authorizeRoles from './src/middlewares/authorizationMiddleware.js';
 import { ROLES } from './src/models/roles.js';
 
-
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -69,7 +68,7 @@ app.use('/api/rooms', roomRoutes)
 app.use('/api/bookings', bookingRoutes)
 app.use('/api/vouchers', voucherRoutes)
 app.use('/api/maintain-schedules', authorizeRoles(ROLES.ADMIN, ROLES.STAFF), maintainScheduleRoutes)
-app.use('/api/over-occupancy-charges', authorizeRoles(ROLES.ADMIN), overOccupancyChargeRoutes)
+app.use('/api/over-occupancy-charges', overOccupancyChargeRoutes)
 app.use('/api/ratings', ratingRoutes)
 app.use('/api/shifts', authorizeRoles(ROLES.ADMIN, ROLES.STAFF), shiftRoutes)
 app.use('/api/schedules', authorizeRoles(ROLES.ADMIN, ROLES.STAFF), scheduleRoutes)

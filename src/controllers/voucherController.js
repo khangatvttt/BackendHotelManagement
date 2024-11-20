@@ -28,7 +28,7 @@ export const getVouchers = async (req, res, next) => {
 
         if (totalAmount !== undefined) {
             const parsedTotalAmount = parseFloat(totalAmount);
-            query.minSpend = { $lt: parsedTotalAmount };
+            query.minSpend = { $lte: parsedTotalAmount };
         }
 
         const vouchers = await Voucher.find(query).lean();

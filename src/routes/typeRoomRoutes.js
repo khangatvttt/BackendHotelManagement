@@ -4,6 +4,7 @@ import {
     getTypeRooms,
     getTypeRoomById,
     updateTypeRoom,
+    getTopRatedTypeRooms,
     availableRoomsByType
 } from '../controllers/typeRoomController.js';
 import multer from 'multer';
@@ -207,7 +208,8 @@ router.post('/', upload.array('images', parseInt(process.env.MAX_IMAGES)), creat
  */
 router.get('/', getTypeRooms);
 
-
+//Get the top 3 highest rated room types
+router.get('/top-rated', getTopRatedTypeRooms);
 
 /**
  * @swagger

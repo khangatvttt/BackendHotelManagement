@@ -139,7 +139,7 @@ router.get('/', authorizeRoles(ROLES.ADMIN, ROLES.STAFF), getAllCustomers);
  *         schema:
  *           type: string
  *     responses:
- *       200:
+ *      200:
  *         description: customer information
  *         content:
  *           application/json:
