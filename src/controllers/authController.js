@@ -14,6 +14,8 @@ import { promisify } from 'util';
 
 dotenv.config()
 
+const BASE_FE_URL = "http://localhost:3001"
+
 // Login by email and password
 export const login = async (req, res, next) => {
   try {
@@ -121,8 +123,7 @@ export const signUp = async (req, res, next) => {
 
     await newUser.save();
 
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
-    await sendVerifyEmail(userData.email, userData.fullName, baseUrl);
+    await sendVerifyEmail(userData.email, userData.fullName);
 
     res.status(201).send();
   } catch (error) {
@@ -192,8 +193,7 @@ export const requestResetPassword = async (req, res, next) => {
       expires: expiresAt
     };
 
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
-    sendResetPasswordEmail(user.email, user.fullName, token, baseUrl)
+    sendResetPasswordEmail(user.email, user.fullName, token)
 
     await user.save();
 
@@ -250,7 +250,7 @@ export const logout = (req, res, next) => {
   res.status(200).send()
 }
 
-const sendVerifyEmail = async (receiverEmail, name, baseUrl) => {
+const sendVerifyEmail = async (receiverEmail, name) => {
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     port: 587,
@@ -268,7 +268,7 @@ const sendVerifyEmail = async (receiverEmail, name, baseUrl) => {
     email: receiverEmail
   });
 
-  const verificationLink = `${baseUrl}/api/auth/verify?token=${verificationToken}`;
+  const verificationLink = `${BASE_FE_URL}/verify-email?token=${verificationToken}`;
 
   const mailOptions = {
     from: 'Hotel Zante Website <HotelZante@gmail.com>',
@@ -288,7 +288,7 @@ const sendVerifyEmail = async (receiverEmail, name, baseUrl) => {
 
 }
 
-const sendResetPasswordEmail = async (receiverEmail, name, token, baseUrl) => {
+const sendResetPasswordEmail = async (receiverEmail, name, token) => {
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     port: 587,
@@ -301,7 +301,7 @@ const sendResetPasswordEmail = async (receiverEmail, name, token, baseUrl) => {
 
   const sendMailAsync = promisify(transporter.sendMail.bind(transporter));
 
-  const verificationLink = `${baseUrl}/api/auth/password-reset?token=${token}`;
+  const verificationLink = `${BASE_FE_URL}/forget-password?token=${token}`;
 
   const mailOptions = {
     from: 'Hotel Zante Website <HotelZante@gmail.com>',
