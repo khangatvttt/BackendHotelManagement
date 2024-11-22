@@ -139,171 +139,174 @@ export const updateRoom = async (req, res, next) => {
 
 //Get available and unavailable dates of room type
 export const getRoomTypeAvailability = async (req, res, next) => {
-    const { typeId, startDate, endDate } = req.query;
+  const { typeId, startDate, endDate } = req.query;
 
-    if (!typeId || !startDate || !endDate) {
-        return res.status(400).json({
-            metadata: {
-                success: false,
-                message: 'Missing required query parameters',
-                timestamp: new Date().toISOString(),
-            },
-            data: null,
-        });
+  if (!typeId || !startDate || !endDate) {
+    return res.status(400).json({
+      metadata: {
+        success: false,
+        message: 'Missing required query parameters',
+        timestamp: new Date().toISOString(),
+      },
+      data: null,
+    });
+  }
+
+  try {
+    const typeRoom = await TypeRoom.findOne({ _id: typeId });
+
+    if (!typeRoom) {
+      return res.status(404).json({
+        metadata: {
+          success: false,
+          message: 'Room type not found.',
+          timestamp: new Date().toISOString(),
+        },
+        data: null,
+      });
     }
 
-    try {
-        // Kiểm tra xem typeId có tồn tại trong bảng TypeRoom hay không
-        const typeRoom = await TypeRoom.findOne({ _id: typeId });
+    const rooms = await Room.find({ typeId });
 
-        if (!typeRoom) {
-            return res.status(404).json({
-                metadata: {
-                    success: false,
-                    message: 'Room type not found.',
-                    timestamp: new Date().toISOString(),
-                },
-                data: null,
-            });
-        }
-
-        // Tìm các phòng theo typeId
-        const rooms = await Room.find({ typeId });
-
-        // Nếu không có phòng trong bảng Room nhưng có trong TypeRoom, trả về tất cả các slot là available
-        if (!rooms.length) {
-            const availableSlots = [];
-            let currentDateTime = new Date(startDate);
-            const endDateTime = new Date(endDate);
-
-            // Tạo tất cả các slot từ startDate đến endDate là available
-            while (currentDateTime <= endDateTime) {
-                availableSlots.push(currentDateTime.toISOString());
-                currentDateTime.setHours(currentDateTime.getHours() + 1);
-            }
-
-            return res.status(200).json({
-                metadata: {
-                    success: true,
-                    message: 'No rooms available, but all slots are available for the given room type.',
-                    timestamp: new Date().toISOString(),
-                },
-                data: {
-                    availableSlots,
-                    notAvailableSlots: [],
-                },
-            });
-        }
-
-        const roomIds = rooms.map((room) => room._id);
-
-        // Tìm booking trong khoảng thời gian từ startDate đến endDate
-        const bookings = await Booking.find({
-            roomId: { $in: roomIds },
-            $or: [
-                { checkInTime: { $lt: new Date(endDate), $gte: new Date(startDate) } },
-                { checkOutTime: { $lte: new Date(endDate), $gt: new Date(startDate) } },
-                {
-                    checkInTime: { $lte: new Date(startDate) },
-                    checkOutTime: { $gte: new Date(endDate) },
-                },
-            ],
-        });
-
-        const notAvailableSlots = [];
-
-        // Nếu có booking, tính toán các slot không khả dụng
-        bookings.forEach((booking) => {
-            let currentDateTime = new Date(booking.checkInTime);
-            const adjustedCheckOutTime = new Date(booking.checkOutTime);
-            adjustedCheckOutTime.setHours(adjustedCheckOutTime.getHours() + 2);
-
-            while (currentDateTime <= adjustedCheckOutTime) {
-                notAvailableSlots.push(currentDateTime.toISOString());
-                currentDateTime.setHours(currentDateTime.getHours() + 1);
-            }
-        });
-
-        const availableSlots = [];
-        let currentDateTime = new Date(startDate);
-        const endDateTime = new Date(endDate);
-
-        // Duyệt qua tất cả các giờ trong khoảng startDate đến endDate
-        while (currentDateTime <= endDateTime) {
-            const timeString = currentDateTime.toISOString();
-            // Nếu không có trong notAvailableSlots, thì thêm vào availableSlots
-            if (!notAvailableSlots.includes(timeString)) {
-                availableSlots.push(timeString);
-            }
-            currentDateTime.setHours(currentDateTime.getHours() + 1);
-        }
-
-        // Nếu không có booking nào, tất cả các slot sẽ là available
-        if (bookings.length === 0) {
-            availableSlots.length = 0; // Xóa danh sách availableSlots hiện tại
-            currentDateTime = new Date(startDate);
-            while (currentDateTime <= endDateTime) {
-                availableSlots.push(currentDateTime.toISOString());
-                currentDateTime.setHours(currentDateTime.getHours() + 1);
-            }
-        }
-
-        return res.status(200).json({
-            metadata: {
-                success: true,
-                message: 'Room availability fetched successfully',
-                timestamp: new Date().toISOString(),
-                totalAvailableSlots: availableSlots.length,
-                totalNotAvailableSlots: notAvailableSlots.length,
-            },
-            data: {
-                availableSlots,
-                notAvailableSlots,
-            },
-        });
-    } catch (error) {
-        console.error('Error fetching room type availability:', error);
-        return res.status(500).json({
-            metadata: {
-                success: false,
-                message: 'Internal server error',
-                timestamp: new Date().toISOString(),
-            },
-            data: null,
-        });
+    if (!rooms.length) {
+      return res.status(200).json({
+        metadata: {
+          success: true,
+          message: 'No rooms available, but all slots are available for the given room type.',
+          timestamp: new Date().toISOString(),
+        },
+        data: {
+          availableSlots: [],
+          notAvailableSlots: [],
+        },
+      });
     }
+
+    const roomIds = rooms.map((room) => room._id);
+
+    const bookings = await Booking.find({
+      roomIds: { $elemMatch: { $in: roomIds } },
+      $or: [
+        { checkInTime: { $lt: new Date(endDate), $gte: new Date(startDate) } },
+        { checkOutTime: { $lte: new Date(endDate), $gt: new Date(startDate) } },
+        {
+          checkInTime: { $lte: new Date(startDate) },
+          checkOutTime: { $gte: new Date(endDate) },
+        },
+      ],
+    });
+
+    const notAvailableSlotsSet = new Set();
+
+    bookings.forEach((booking) => {
+      booking.roomIds.forEach((roomId) => {
+        if (roomIds.some((id) => id.equals(roomId))) {
+          let currentDateTime = new Date(booking.checkInTime);
+          const adjustedCheckOutTime = new Date(booking.checkOutTime);
+          adjustedCheckOutTime.setHours(adjustedCheckOutTime.getHours() + 2);
+
+          while (currentDateTime < adjustedCheckOutTime) {
+            notAvailableSlotsSet.add(currentDateTime.toISOString());
+            currentDateTime.setMinutes(currentDateTime.getMinutes() + 30);
+          }
+        }
+      });
+    });
+
+
+    const notAvailableSlots = Array.from(notAvailableSlotsSet);
+
+    let availableSlots = [];
+    let currentDateTime = new Date(startDate);
+    const endDateTime = new Date(endDate);
+
+    const MIN_FREE_TIME = 60 * 60 * 1000; 
+
+    while (currentDateTime < endDateTime) {
+      const slot = currentDateTime.toISOString();
+      if (!notAvailableSlotsSet.has(slot)) {
+        availableSlots.push(slot);
+      }
+      currentDateTime.setMinutes(currentDateTime.getMinutes() + 30);
+    }
+
+    const filteredAvailableSlots = [];
+    for (let i = 0; i < availableSlots.length; i++) {
+      const currentSlot = new Date(availableSlots[i]);
+      if (!notAvailableSlotsSet.has(currentSlot.toISOString())) {
+        filteredAvailableSlots.push(availableSlots[i]);
+      }
+    }
+
+
+    if (availableSlots.length > 0) {
+      const lastSlot = new Date(availableSlots[availableSlots.length - 1]);
+      const secondLastSlot = new Date(availableSlots[availableSlots.length - 2]);
+
+      if (lastSlot - secondLastSlot >= MIN_FREE_TIME) {
+        filteredAvailableSlots.push(availableSlots[availableSlots.length - 1]);
+      } else {
+        notAvailableSlots.push(availableSlots[availableSlots.length - 1]);
+      }
+    }
+
+    return res.status(200).json({
+      metadata: {
+        success: true,
+        message: 'Room availability fetched successfully',
+        timestamp: new Date().toISOString(),
+        totalAvailableSlots: filteredAvailableSlots.length,
+        totalNotAvailableSlots: notAvailableSlots.length,
+      },
+      data: {
+        availableSlots: filteredAvailableSlots,
+        notAvailableSlots,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching room type availability:', error);
+    return res.status(500).json({
+      metadata: {
+        success: false,
+        message: 'Internal server error',
+        timestamp: new Date().toISOString(),
+      },
+      data: null,
+    });
+  }
 };
+
 
 
 
 // Get rating for top 4 
 export const getTopRatedRoom = async (req, res, next) => {
-    try {
-        const topRatedRooms = await Booking.aggregate([
-            {
-                $unwind: '$RoomID'
-            },
-            {
-                $group: {
-                    _id: '$RoomID',
-                    avgRating: { $avg: '$Rating' }
-                }
-            },
-            {
-                $sort: { avgRating: -1 }
-            },
-            {
-                $limit: 4
-            }
-        ]);
-        const rooms = await Room.find({
-            _id: { $in: topRatedRooms.map(room => mongoose.Types.ObjectId(room._id)) }
-        });
+  try {
+    const topRatedRooms = await Booking.aggregate([
+      {
+        $unwind: '$RoomID'
+      },
+      {
+        $group: {
+          _id: '$RoomID',
+          avgRating: { $avg: '$Rating' }
+        }
+      },
+      {
+        $sort: { avgRating: -1 }
+      },
+      {
+        $limit: 4
+      }
+    ]);
+    const rooms = await Room.find({
+      _id: { $in: topRatedRooms.map(room => mongoose.Types.ObjectId(room._id)) }
+    });
 
-        res.status(200).json(rooms);
-    } catch (error) {
-        next(error);
-    }
+    res.status(200).json(rooms);
+  } catch (error) {
+    next(error);
+  }
 }
 
 export const getBookedTimeOfRoom = async (req, res, next) => {
