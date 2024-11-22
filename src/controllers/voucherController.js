@@ -34,7 +34,8 @@ export const getVouchers = async (req, res, next) => {
 
         const processedVouchers = vouchers.filter(voucher => {
             // Reach limit or this user is already used it
-            if (voucher.userUsedVoucher.length >= voucher.limit || voucher.userUsedVoucher.includes(req.user.id)) {
+            const userUsedVoucherAsStrings = voucher.userUsedVoucher.map(id => id.toString());
+            if (voucher.userUsedVoucher.length >= voucher.limit || userUsedVoucherAsStrings.includes(req.user.id)) {
                 return false;
             } else {
                 voucher.remainingUses = voucher.limitUse - voucher.userUsedVoucher.length;

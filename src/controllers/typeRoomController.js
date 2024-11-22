@@ -295,25 +295,25 @@ export const getTopRatedTypeRooms = async (req, res, next) => {
                 $group: {
                     _id: '$typeRoomId',
                     averageScore: { $avg: '$score' },
-                    totalRatings: { $sum: 1 }
-                }
+                    totalRatings: { $sum: 1 },
+                },
             },
             {
-                $sort: { averageScore: -1 }
+                $sort: { averageScore: -1 },
             },
             {
-                $limit: 3
+                $limit: 3,
             },
             {
                 $lookup: {
                     from: 'typerooms',
                     localField: '_id',
                     foreignField: '_id',
-                    as: 'typeRoomDetails'
-                }
+                    as: 'typeRoomDetails',
+                },
             },
             {
-                $unwind: '$typeRoomDetails'
+                $unwind: '$typeRoomDetails',
             },
             {
                 $project: {
@@ -325,20 +325,44 @@ export const getTopRatedTypeRooms = async (req, res, next) => {
                     price: '$typeRoomDetails.price',
                     images: '$typeRoomDetails.images',
                     averageScore: 1,
-                    totalRatings: 1
-                }
-            }
+                    totalRatings: 1,
+                },
+            },
         ]);
 
         if (!topRatedRooms.length) {
-            return res.status(404).json({ message: 'No top-rated rooms found' });
+            return res.status(404).json({
+                metadata: {
+                    success: false,
+                    message: 'No top-rated rooms found',
+                    timestamp: new Date().toISOString(),
+                },
+                data: null,
+            });
         }
 
-        res.status(200).json(topRatedRooms);
+        res.status(200).json({
+            metadata: {
+                success: true,
+                message: 'Top-rated room types fetched successfully',
+                timestamp: new Date().toISOString(),
+                totalTopRatedRooms: topRatedRooms.length,
+            },
+            data: topRatedRooms,
+        });
     } catch (error) {
-        next(error);
+        console.error('Error fetching top-rated rooms:', error);
+        res.status(500).json({
+            metadata: {
+                success: false,
+                message: 'Internal server error',
+                timestamp: new Date().toISOString(),
+            },
+            data: null,
+        });
     }
 };
+
 
 
 export const availableRoomsByType = async (req, res, next) => {
