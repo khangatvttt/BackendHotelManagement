@@ -300,6 +300,6 @@ router.get('/:id', getBookingById);
  *       404:
  *         description: Booking not found
  */
-router.put('/:id', authorizeRoles(ROLES.ADMIN, ROLES.STAFF), updateBooking);
+router.put('/:id', updateBooking);
 
 export default router;

@@ -352,11 +352,16 @@ export const updateBooking = async (req, res, next) => {
                 throw new NotFoundError(`Booking with id ${bookingId} doesn't exist`);
             }
             if (booking.userId != req.user.id) {
+                console.log(booking.userId)
+                console.log(req.user.id)
                 throw new ForbiddenError('You are not allowed to do this action');
             }
-            booking.currentStatus = req.body.currentStatus == 'Cancelled' ? Cancelled : booking.currentStatus;
+            booking.currentStatus = req.body.currentStatus == 'Cancelled' ? 'Cancelled' : booking.currentStatus;
             await booking.save();
+            await session.commitTransaction();
+            session.endSession();
             res.status(200).send();
+            return;
         }
 
         // Staff or adminn update
@@ -431,6 +436,7 @@ export const updateBooking = async (req, res, next) => {
         session.endSession()
         res.status(200).json(updatedBooking);
     } catch (error) {
+        console.log(error)
         await session.abortTransaction()
         session.endSession()
         next(error);
