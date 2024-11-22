@@ -1,6 +1,7 @@
 import Voucher from '../models/voucher.schema.js';
 import NotFoundError from '../errors/notFoundError.js';
 import BadRequestError from '../errors/badRequestError.js';
+import mongoose from 'mongoose';
 
 // Create a new Voucher
 export const createVoucher = async (req, res, next) => {
