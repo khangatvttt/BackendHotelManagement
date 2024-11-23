@@ -7,6 +7,7 @@ import {
 } from '../controllers/bookingController.js';
 import authorizeRoles from '../middlewares/authorizationMiddleware.js';
 import { ROLES } from '../models/roles.js';
+import { momoPayment } from '../utils/momoPayment.js';
 
 const router = express.Router();
 
@@ -301,5 +302,63 @@ router.get('/:id', getBookingById);
  *         description: Booking not found
  */
 router.put('/:id', updateBooking);
+
+
+/**
+ * @swagger
+ * /api/bookings/payment:
+ *   post:
+ *     summary: Process a payment via MoMo
+ *     tags: [Bookings]
+ *     description: Initiates a payment request to the MoMo payment gateway.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               amount:
+ *                 type: integer
+ *                 example: 200000
+ *                 description: The amount to be paid in VND.
+ *     responses:
+ *       200:
+ *         description: Payment processed successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 partnerCode:
+ *                   type: string
+ *                   example: MOMO
+ *                 orderId:
+ *                   type: string
+ *                   example: MOMO1732375966094
+ *                 requestId:
+ *                   type: string
+ *                   example: MOMO1732375966094
+ *                 amount:
+ *                   type: integer
+ *                   example: 200000
+ *                 responseTime:
+ *                   type: integer
+ *                   example: 1732375966356
+ *                 message:
+ *                   type: string
+ *                   example: Thành công.
+ *                 resultCode:
+ *                   type: integer
+ *                   example: 0
+ *                 payUrl:
+ *                   type: string
+ *                   example: https://test-payment.momo.vn/v2/gateway/pay?s=88610ac1dd26f0633af301f4020f48bfd9ac5dca9be62f33c99bdabb5d45d0b7&t=TU9NT3xNT01PMTczMjM3NTk2NjA5NA
+ *                 shortLink:
+ *                   type: string
+ *                   example: https://test-payment.momo.vn/shortlink/tZxqn9E4H8
+ */
+router.post('/payment', momoPayment);
+
 
 export default router;
