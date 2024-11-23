@@ -4,6 +4,7 @@ import {
     getTypeRooms,
     getTypeRoomById,
     updateTypeRoom,
+    availableTimeByType,
     availableRoomsByType
 } from '../controllers/typeRoomController.js';
 import multer from 'multer';
@@ -113,7 +114,7 @@ router.post('/', upload.array('images', parseInt(process.env.MAX_IMAGES)), creat
 
 /**
  * @swagger
- * /api/typerooms:
+ * /api/type-rooms:
  *   get:
  *     summary: Retrieve all TypeRooms
  *     parameters:
@@ -211,7 +212,7 @@ router.get('/', getTypeRooms);
 
 /**
  * @swagger
- * /api/typerooms/{id}:
+ * /api/type-rooms/{id}:
  *   get:
  *     summary: Retrieve a TypeRoom by ID
  *     tags: [TypeRoom]
@@ -236,7 +237,7 @@ router.get('/:id', getTypeRoomById);
 
 /**
  * @swagger
- * /api/typerooms/{id}:
+ * /api/type-rooms/{id}:
  *   put:
  *     summary: Update a TypeRoom by ID
  *     tags: [TypeRoom]
@@ -292,7 +293,7 @@ router.put('/:id', upload.array('images', parseInt(process.env.MAX_IMAGES)), upd
 
 /**
  * @swagger
- * /api/typerooms/{id}/availableRooms:
+ * /api/type-rooms/{id}/availableRooms:
  *   get:
  *     summary: Check how many rooms are available in a specific time
  *     tags: [TypeRoom]
@@ -334,5 +335,52 @@ router.put('/:id', upload.array('images', parseInt(process.env.MAX_IMAGES)), upd
  *         description: TypeRoom not found
  */
 router.get('/:id/availableRooms', availableRoomsByType);
+
+
+/**
+ * @swagger
+ * /api/type-rooms/{id}/time:
+ *   get:
+ *     summary: Returs available time and unvailable time of typerooms
+ *     tags: [TypeRoom]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The ID of the TypeRoom to check
+ *       - in: query
+ *         name: checkInTime
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         required: true
+ *         description: The check-in time
+ *       - in: query
+ *         name: checkOutTime
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         required: true
+ *         description: The check-out time
+ *     responses:
+ *       200:
+ *         description: Number of available rooms
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 availableRooms:
+ *                   type: integer
+ *                   example: 5
+ *       400:
+ *         description: Bad request
+ *       404:
+ *         description: TypeRoom not found
+ */
+router.get('/:id/time', availableTimeByType);
+
 
 export default router;
