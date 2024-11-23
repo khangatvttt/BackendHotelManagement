@@ -377,7 +377,7 @@ router.get('/:id/availableRooms', availableRoomsByType);
  *                 availableRooms:
  *                   type: integer
  *                   example: 5
- *       400:
+ *       400:                                                                                                                                                       
  *         description: Bad request
  *       404:
  *         description: TypeRoom not found
