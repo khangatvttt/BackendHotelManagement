@@ -8,8 +8,8 @@ export const momoPayment = async (req, res, next) => {
     var secretKey = 'K951B6PE1waDMi640xX08PD3vg6EkVlz';
     var orderInfo = 'Pay for booking of Hotel Zante';
     var partnerCode = 'MOMO';
-    var redirectUrl = 'https://webhook.site/b3088a6a-2d17-4f8d-a383-71389a6c600b';
-    var ipnUrl = 'https://webhook.site/b3088a6a-2d17-4f8d-a383-71389a6c600b';
+    var redirectUrl = 'http://localhost:3001/confirmation';
+    var ipnUrl = 'http://localhost:3001/confirmation';
     var requestType = "payWithMethod";
     var amount = req.body.amount;
     var orderId = partnerCode + new Date().getTime();
