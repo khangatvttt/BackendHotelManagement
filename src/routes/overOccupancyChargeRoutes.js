@@ -7,6 +7,9 @@ import {
     deleteOverOccupancyCharge
 } from '../controllers/overOccupancyChargeController.js';
 
+import authorizeRoles from '../middlewares/authorizationMiddleware.js';
+import { ROLES } from '../models/roles.js';
+
 const router = express.Router();
 
 /**
@@ -44,7 +47,7 @@ const router = express.Router();
  *       500:
  *         description: Internal server error
  */
-router.post('/', createOverOccupancyCharge);
+router.post('/', authorizeRoles(ROLES.ADMIN), createOverOccupancyCharge);
 
 /**
  * @swagger
@@ -117,7 +120,7 @@ router.get('/:id', getOverOccupancyChargeById);
  *       500:
  *         description: Internal server error
  */
-router.put('/:id', updateOverOccupancyCharge);
+router.put('/:id', authorizeRoles(ROLES.ADMIN), updateOverOccupancyCharge);
 
 /**
  * @swagger
@@ -140,6 +143,6 @@ router.put('/:id', updateOverOccupancyCharge);
  *       500:
  *         description: Internal server error
  */
-router.delete('/:id', deleteOverOccupancyCharge);
+router.delete('/:id', authorizeRoles(ROLES.ADMIN), deleteOverOccupancyCharge);
 
 export default router;

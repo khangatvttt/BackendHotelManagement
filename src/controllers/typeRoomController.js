@@ -89,7 +89,7 @@ export const getTypeRooms = async (req, res, next) => {
 
         const query = {};
         if (req.query.limit) {
-            query.limit = req.query.limit;
+            query.limit = { $gte: req.query.limit };
         }
 
         let bookedRoomIds = [];
@@ -123,19 +123,19 @@ export const getTypeRooms = async (req, res, next) => {
         };
 
         const totalDocuments = await TypeRoom.countDocuments(query);
-        if (totalDocuments==0){
+        if (totalDocuments == 0) {
             res.status(200).json({
                 "metadata": {
-                  "currentPage": 0,
-                  "sizeEachPage": 0,
-                  "totalElements": 0,
-                  "totalPages": 0
+                    "currentPage": 0,
+                    "sizeEachPage": 0,
+                    "totalElements": 0,
+                    "totalPages": 0
                 },
                 "data": [
                 ]
-              })
+            })
             return
-          }
+        }
         const totalPages = Math.ceil(totalDocuments / size);
         if (page > totalPages) {
             throw new BadRequestError('Excess page limit');
@@ -391,9 +391,8 @@ export const availableRoomsByType = async (req, res, next) => {
         // Rooms that are booked in selected time
         const conflictBookings = await Booking.find({
             currentStatus: 'Reserved',
-            $or: [
-                { checkInTime: { $lt: adjustedCheckOut }, checkOutTime: { $gt: checkInTime } }
-            ]
+            checkInTime: { $lte: adjustedCheckOut },
+            checkOutTime: { $gte: checkInTime }
         }).select('roomIds');
 
         bookedRoomIds = conflictBookings.flatMap(booking => booking.roomIds);
@@ -412,6 +411,77 @@ export const availableRoomsByType = async (req, res, next) => {
         res.status(200).json({
             'availableRoom': availableRooms.length
         })
+    }
+    catch (err) {
+        next(err)
+    }
+
+}
+
+export const availableTimeByType = async (req, res, next) => {
+    try {
+        const bodySchema = Joi.object({
+            checkInTime: Joi.date().required(),
+            checkOutTime: Joi.date().required(),
+        });
+
+        const { error } = bodySchema.validate(req.query);
+
+        if (error) {
+            throw error;
+        }
+
+        let currentTime = new Date(req.query.checkInTime);
+        let endTime = new Date(req.query.checkOutTime);
+        let availableTime = []
+        let notAvailableTime = []
+
+        while (currentTime <= endTime) {
+            let bookedRoomIds = [];
+            const checkInTime = currentTime;
+            const checkOutTime = new Date(currentTime.getTime() + 60 * 60 * 1000);
+
+            // Rooms that are booked in selected time
+            const conflictBookings = await Booking.find({
+                currentStatus: 'Reserved',
+                checkInTime: { $lte: checkOutTime },
+                checkOutTime: { $gte: checkInTime }
+            }).select('roomIds');
+
+            bookedRoomIds = conflictBookings.flatMap(booking => booking.roomIds);
+            bookedRoomIds = bookedRoomIds.map(room => room.toString())
+            const roomsOfType = await Room.find({
+                typeId: req.params.id,
+                status: true
+            }).select('_id');
+            const allRoomsThisType = roomsOfType.map(room => room._id);
+
+
+
+            // Remove all rooms that are booked
+            const availableRooms = allRoomsThisType.filter(room => !bookedRoomIds.includes(room.toString()));
+            // Number of rooms that are available for booking
+            if (availableRooms.length == 0) {
+                notAvailableTime.push(checkInTime)
+                notAvailableTime.push(checkOutTime)
+            }
+            else {
+                availableTime.push(checkInTime)
+                availableTime.push(checkOutTime)
+            }
+            currentTime = new Date(currentTime.getTime() + 60 * 60 * 1000); // Thêm 1 giờ
+        }
+
+        const resultAvailableTime = Array.from(new Set(availableTime.map(date => date.toISOString())))
+            .map(dateString => new Date(dateString));
+        const resultNotAvailableTime = Array.from(new Set(notAvailableTime.map(date => date.toISOString())))
+            .map(dateString => new Date(dateString));
+
+        res.status(200).json({
+            availableSlots: resultAvailableTime,
+            notAvailableSlots: resultNotAvailableTime
+        })
+
     }
     catch (err) {
         next(err)
