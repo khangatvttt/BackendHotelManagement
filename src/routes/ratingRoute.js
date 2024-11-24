@@ -78,6 +78,7 @@ const router = express.Router();
  *           description: The version key (used internally by MongoDB)
  *           example: 0
  */
+router.get('/', getAllRatings);
 
 
 /**
