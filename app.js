@@ -64,7 +64,7 @@ app.use(jwtMiddleware)
 app.use('/api/customers', customerRoutes);
 app.use('/api/staffs', authorizeRoles(ROLES.ADMIN, ROLES.STAFF), staffRoutes);
 app.use('/api/type-rooms', typeRoomRoutes);
-app.use('/api/rooms', roomRoutes)
+app.use('/api/rooms', authorizeRoles(ROLES.ADMIN), roomRoutes)
 app.use('/api/bookings', bookingRoutes)
 app.use('/api/vouchers', voucherRoutes)
 app.use('/api/maintain-schedules', authorizeRoles(ROLES.ADMIN, ROLES.STAFF), maintainScheduleRoutes)

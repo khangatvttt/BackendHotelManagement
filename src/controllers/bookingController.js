@@ -280,9 +280,18 @@ export const getBookings = async (req, res, next) => {
         const bookings = await Booking.find(query)
             .limit(size)
             .skip(size * (page - 1))
-            .populate('userId')
-            .populate('roomIds');
-
+            .populate({
+                path: 'userId',
+                select: 'fullName phoneNumber email'
+            })
+            .populate({
+                path: 'roomIds',
+                populate: {
+                    path: 'typeId',
+                    select: 'typename'
+                },
+                select: 'roomNumber'
+            });
         // Prepare metadata and response
         const response = {
             metadata: {
