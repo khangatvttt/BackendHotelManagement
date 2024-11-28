@@ -6,6 +6,8 @@ import {
     updateRoom,
     getBookedTimeOfRoom
 } from '../controllers/roomController.js';
+import authorizeRoles from '../middlewares/authorizationMiddleware.js';
+import { ROLES } from '../models/roles.js';
 
 const router = express.Router();
 
@@ -57,7 +59,7 @@ const router = express.Router();
  *       400:
  *         description: Bad request
  */
-router.post('/', createRoom);
+router.post('/',authorizeRoles(ROLES.ADMIN), createRoom);
 
 /**
  * @swagger
@@ -257,7 +259,7 @@ router.get('/:id', getRoomById);
  *       400:
  *         description: Bad request
  */
-router.put('/:id', updateRoom);
+router.put('/:id',authorizeRoles(ROLES.ADMIN), updateRoom);
 
 /**
  * @swagger
